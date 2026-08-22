@@ -92,7 +92,7 @@ class Database {
             {
                 id: 'e-1',
                 employeeId: 'HR-001',
-                name: 'Sarah Jenkins',
+                name: 'vinoth',
                 email: 'admin@dayflow.com',
                 role: 'Admin',
                 designation: 'HR Lead & Operations Director',
@@ -132,7 +132,7 @@ class Database {
                 address: '100 Market St, San Francisco, CA',
                 emergencyContact: '+1 (555) 876-5432 (Mother - Jane)',
                 avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
-                managerName: 'Sarah Jenkins',
+                managerName: 'vinoth',
                 salaryStructure: {
                     basic: 5500,
                     hra: 2200,
@@ -162,7 +162,7 @@ class Database {
                 address: '456 Mission St, San Francisco, CA',
                 emergencyContact: '+1 (555) 765-4321 (Brother - Mark)',
                 avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
-                managerName: 'Sarah Jenkins',
+                managerName: 'vinoth',
                 salaryStructure: {
                     basic: 6000,
                     hra: 2400,
@@ -191,7 +191,7 @@ class Database {
                 address: '789 Castro St, San Francisco, CA',
                 emergencyContact: '+1 (555) 654-3210 (Father - David)',
                 avatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150',
-                managerName: 'Sarah Jenkins',
+                managerName: 'vinoth',
                 salaryStructure: {
                     basic: 4800,
                     hra: 1920,
@@ -220,7 +220,7 @@ class Database {
                 address: '321 Pine St, San Francisco, CA',
                 emergencyContact: '+1 (555) 543-2109 (Spouse - Jessica)',
                 avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150',
-                managerName: 'Sarah Jenkins',
+                managerName: 'vinoth',
                 salaryStructure: {
                     basic: 5000,
                     hra: 2000,
@@ -298,7 +298,7 @@ class Database {
                 status: 'Approved',
                 appliedDate: '2026-08-17',
                 adminComment: 'Approved. Rest well!',
-                reviewedBy: 'Sarah Jenkins',
+                reviewedBy: 'vinoth',
                 reviewedAt: '2026-08-17 10:30',
             },
             {

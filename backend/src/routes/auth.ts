@@ -92,7 +92,7 @@ router.post('/register', async (req, res) => {
     const empResult = await pool.query(
       `INSERT INTO employees (employee_id, name, email, role, designation, department, phone, address, manager_name)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
-      [employeeId, name, email, userRole, designation || 'Software Engineer', department || 'Engineering', phone || '', address || '', 'Sarah Jenkins']
+      [employeeId, name, email, userRole, designation || 'Software Engineer', department || 'Engineering', phone || '', address || '', 'vinoth']
     );
 
     const newUser = userResult.rows[0];

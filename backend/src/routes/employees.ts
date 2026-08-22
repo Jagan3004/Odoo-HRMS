@@ -76,7 +76,7 @@ router.post('/', authenticateToken, requireRole('Admin'), async (req: AuthReques
         designation || 'Staff Member', department || 'General',
         joiningDate || new Date().toISOString().split('T')[0],
         phone || '', address || '', emergencyContact || '',
-        managerName || 'Sarah Jenkins',
+        managerName || 'vinoth',
         sal.basic, sal.hra, sal.specialAllowance, sal.conveyance, sal.pfDeduction, sal.taxDeduction,
       ]
     );

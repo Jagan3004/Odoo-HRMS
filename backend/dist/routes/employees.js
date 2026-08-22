@@ -58,7 +58,7 @@ router.post('/', auth_1.authenticateToken, (0, auth_1.requireRole)('Admin'), asy
             designation || 'Staff Member', department || 'General',
             joiningDate || new Date().toISOString().split('T')[0],
             phone || '', address || '', emergencyContact || '',
-            managerName || 'Sarah Jenkins',
+            managerName || 'vinoth',
             sal.basic, sal.hra, sal.specialAllowance, sal.conveyance, sal.pfDeduction, sal.taxDeduction,
         ]);
         return res.status(201).json((0, db_1.mapEmployee)(empResult.rows[0]));

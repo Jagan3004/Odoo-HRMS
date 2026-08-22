@@ -180,15 +180,15 @@ INSERT INTO users (employee_id, email, password_hash, role, email_verified) VALU
 INSERT INTO employees (employee_id, name, email, role, designation, department, joining_date, phone, address, emergency_contact, avatar_url, manager_name,
     salary_basic, salary_hra, salary_special_allowance, salary_conveyance, salary_pf_deduction, salary_tax_deduction,
     leave_paid, leave_sick) VALUES
-    ('HR-001',  'Sarah Jenkins',  'admin@dayflow.com',       'Admin',    'HR Lead & Operations Director', 'Human Resources', '2022-03-15', '+1 (555) 234-5678', '742 Evergreen Terrace, Springfield, OR', '+1 (555) 987-6543 (Spouse - Robert)', '', 'Board of Directors',
+    ('HR-001',  'vinoth',         'admin@dayflow.com',       'Admin',    'HR Lead & Operations Director', 'Human Resources', '2022-03-15', '+1 (555) 234-5678', '742 Evergreen Terrace, Springfield, OR', '+1 (555) 987-6543 (Spouse - Robert)', '', 'Board of Directors',
         6500, 2600, 1900, 500, 780, 1100, 18, 10),
-    ('EMP-101', 'Alex Morgan',    'employee@dayflow.com',    'Employee', 'Senior Frontend Engineer',      'Engineering',     '2023-01-10', '+1 (555) 345-6789', '100 Market St, San Francisco, CA',       '+1 (555) 876-5432 (Mother - Jane)',     '', 'Sarah Jenkins',
+    ('EMP-101', 'Alex Morgan',    'employee@dayflow.com',    'Employee', 'Senior Frontend Engineer',      'Engineering',     '2023-01-10', '+1 (555) 345-6789', '100 Market St, San Francisco, CA',       '+1 (555) 876-5432 (Mother - Jane)',     '', 'vinoth',
         5500, 2200, 1500, 400, 660, 840, 12, 7),
-    ('EMP-102', 'John Doe',       'john.doe@dayflow.com',    'Employee', 'Backend Systems Architect',     'Engineering',     '2022-08-01', '+1 (555) 456-7890', '456 Mission St, San Francisco, CA',      '+1 (555) 765-4321 (Brother - Mark)',    '', 'Sarah Jenkins',
+    ('EMP-102', 'John Doe',       'john.doe@dayflow.com',    'Employee', 'Backend Systems Architect',     'Engineering',     '2022-08-01', '+1 (555) 456-7890', '456 Mission St, San Francisco, CA',      '+1 (555) 765-4321 (Brother - Mark)',    '', 'vinoth',
         6000, 2400, 1600, 400, 720, 980, 14, 9),
-    ('EMP-103', 'Emily Chen',     'emily.chen@dayflow.com',  'Employee', 'UI/UX Product Designer',        'Design',          '2023-05-18', '+1 (555) 567-8901', '789 Castro St, San Francisco, CA',       '+1 (555) 654-3210 (Father - David)',    '', 'Sarah Jenkins',
+    ('EMP-103', 'Emily Chen',     'emily.chen@dayflow.com',  'Employee', 'UI/UX Product Designer',        'Design',          '2023-05-18', '+1 (555) 567-8901', '789 Castro St, San Francisco, CA',       '+1 (555) 654-3210 (Father - David)',    '', 'vinoth',
         4800, 1920, 1280, 300, 576, 624, 15, 8),
-    ('EMP-104', 'David Miller',   'david.miller@dayflow.com','Employee', 'Financial Analyst',             'Finance',         '2023-11-01', '+1 (555) 678-9012', '321 Pine St, San Francisco, CA',          '+1 (555) 543-2109 (Spouse - Jessica)',  '', 'Sarah Jenkins',
+    ('EMP-104', 'David Miller',   'david.miller@dayflow.com','Employee', 'Financial Analyst',             'Finance',         '2023-11-01', '+1 (555) 678-9012', '321 Pine St, San Francisco, CA',          '+1 (555) 543-2109 (Spouse - Jessica)',  '', 'vinoth',
         5000, 2000, 1400, 400, 600, 700, 16, 10);
 
 -- Attendance (past 7 weekdays for all employees)
