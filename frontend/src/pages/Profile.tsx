@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { apiRequest } from '../api/client';
 import { UserCheck, Mail, Phone, Building, Briefcase, Calendar, MapPin, Save, Key, Shield, CreditCard } from 'lucide-react';
+import { formatCurrency, formatDate } from '../utils/format';
 
 export const Profile: React.FC = () => {
   const { user, employee, refreshProfile } = useAuth();
@@ -105,7 +106,7 @@ export const Profile: React.FC = () => {
           <div className="space-y-4 text-xs">
             <div className="flex items-start gap-3"><Building className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" /><div><p className="text-[10px] text-gray-400 uppercase font-semibold">Department</p><p className="text-sm text-gray-800 mt-0.5">{employee.department}</p></div></div>
             <div className="flex items-start gap-3"><Briefcase className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" /><div><p className="text-[10px] text-gray-400 uppercase font-semibold">Designation</p><p className="text-sm text-gray-800 mt-0.5">{employee.designation}</p></div></div>
-            <div className="flex items-start gap-3"><Calendar className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" /><div><p className="text-[10px] text-gray-400 uppercase font-semibold">Joining Date</p><p className="text-sm text-gray-800 mt-0.5">{employee.joiningDate}</p></div></div>
+            <div className="flex items-start gap-3"><Calendar className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" /><div><p className="text-[10px] text-gray-400 uppercase font-semibold">Joining Date</p><p className="text-sm text-gray-800 mt-0.5">{formatDate(employee.joiningDate)}</p></div></div>
           </div>
         </div>
       </div>
@@ -122,7 +123,7 @@ export const Profile: React.FC = () => {
           ].map((s) => (
             <div key={s.label} className="text-center p-4 bg-gray-50 rounded-lg border border-gray-200">
               <p className="text-xs text-gray-500">{s.label}</p>
-              <p className="text-lg font-bold text-gray-900 mt-1 font-mono">₹{s.value.toLocaleString()}</p>
+              <p className="text-lg font-bold text-gray-900 mt-1 font-mono">{formatCurrency(s.value)}</p>
             </div>
           ))}
         </div>

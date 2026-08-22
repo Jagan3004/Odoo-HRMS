@@ -48,10 +48,10 @@ router.post('/check-out', auth_1.authenticateToken, async (req, res) => {
         if (existing.rows[0].check_out) {
             return res.status(400).json({ message: 'Already checked out for today', record: (0, db_1.mapAttendance)(existing.rows[0]) });
         }
-        // Calculate hours and update
+        // Calculate a same-day duration and guard against invalid negative values.
         const result = await db_1.pool.query(`UPDATE attendance
        SET check_out = CURRENT_TIME,
-           total_hours = ROUND(EXTRACT(EPOCH FROM (CURRENT_TIME - check_in)) / 3600.0, 2),
+           total_hours = GREATEST(0, ROUND(EXTRACT(EPOCH FROM (CURRENT_TIME - check_in)) / 3600.0, 2)),
            status = CASE
              WHEN EXTRACT(EPOCH FROM (CURRENT_TIME - check_in)) / 3600.0 < 4 THEN 'Half-day'
              ELSE 'Present'

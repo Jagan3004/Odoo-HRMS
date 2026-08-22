@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { apiRequest } from '../api/client';
 import { AdminStats } from '../types';
-import { BarChart3, Users, Clock, CalendarDays, DollarSign } from 'lucide-react';
+import { BarChart3, Users, Clock, CalendarDays, Wallet } from 'lucide-react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, PieChart, Pie, Cell, LineChart, Line, CartesianGrid } from 'recharts';
+import { formatCurrency } from '../utils/format';
 
 const COLORS = ['#4f46e5', '#7c3aed', '#ec4899', '#3b82f6', '#10b981', '#f59e0b'];
 
@@ -45,7 +46,7 @@ export const Analytics: React.FC = () => {
           { label: 'Headcount', value: stats.totalEmployees, icon: Users, color: 'indigo' },
           { label: 'Attendance Rate', value: `${Math.round((stats.presentToday / stats.totalEmployees) * 100)}%`, icon: Clock, color: 'green' },
           { label: 'Leave Queue', value: stats.pendingLeaveRequests, icon: CalendarDays, color: 'amber' },
-          { label: 'Monthly Cost', value: `$${(stats.totalMonthlyPayroll / 1000).toFixed(1)}K`, icon: DollarSign, color: 'purple' },
+          { label: 'Monthly Cost', value: formatCurrency(stats.totalMonthlyPayroll), icon: Wallet, color: 'purple' },
         ].map((kpi) => { const Icon = kpi.icon; return (
           <div key={kpi.label} className="stat-card p-5 rounded-xl flex items-center justify-between">
             <div>
@@ -84,7 +85,7 @@ export const Analytics: React.FC = () => {
                 <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
                 <XAxis dataKey="month" stroke="#9ca3af" fontSize={11} tickLine={false} axisLine={false} />
                 <YAxis stroke="#9ca3af" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v: number) => `₹${(v / 1000).toFixed(0)}K`} />
-                <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => [`₹${v.toLocaleString()}`, 'Cost']} />
+                <Tooltip contentStyle={tooltipStyle} formatter={(v) => [formatCurrency(Number(v || 0)), 'Cost']} />
                 <Line type="monotone" dataKey="cost" stroke="#4f46e5" strokeWidth={2.5} dot={{ fill: '#4f46e5', r: 4 }} activeDot={{ r: 6 }} />
               </LineChart>
             </ResponsiveContainer>
@@ -132,7 +133,7 @@ export const Analytics: React.FC = () => {
               <BarChart data={payrollByDept} layout="vertical">
                 <XAxis type="number" stroke="#9ca3af" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v: number) => `₹${(v / 1000).toFixed(0)}K`} />
                 <YAxis type="category" dataKey="name" stroke="#9ca3af" fontSize={11} tickLine={false} axisLine={false} width={80} />
-                <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => [`₹${v.toLocaleString()}`, 'Payroll']} />
+                <Tooltip contentStyle={tooltipStyle} formatter={(v) => [formatCurrency(Number(v || 0)), 'Payroll']} />
                 <Bar dataKey="amount" fill="#7c3aed" radius={[0, 4, 4, 0]} />
               </BarChart>
             </ResponsiveContainer>

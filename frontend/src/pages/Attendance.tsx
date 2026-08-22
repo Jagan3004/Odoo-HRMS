@@ -1,132 +1,71 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import { apiRequest } from '../api/client';
 import { AttendanceRecord } from '../types';
-import { Clock, Play, Square, Calendar, Filter, Edit2, Search } from 'lucide-react';
+import { CalendarDays, Clock3, Download, Filter, Play, Search, Square, Timer } from 'lucide-react';
+import { formatDate, formatHours, formatTime } from '../utils/format';
+import { StatusBadge } from '../components/ui/StatusBadge';
+import { StatCard } from '../components/ui/StatCard';
+import { LoadingState } from '../components/ui/LoadingState';
+
+const tone = (status: string) => status === 'Present' ? 'success' as const : status === 'Half-day' ? 'warning' as const : status === 'Absent' ? 'danger' as const : 'info' as const;
 
 export const Attendance: React.FC = () => {
   const { user, refreshProfile } = useAuth();
-  const [myAttendance, setMyAttendance] = useState<AttendanceRecord[]>([]);
-  const [allAttendance, setAllAttendance] = useState<AttendanceRecord[]>([]);
-  const [todayRecord, setTodayRecord] = useState<AttendanceRecord | null>(null);
+  const { showToast } = useToast();
+  const isAdmin = user?.role === 'Admin' || user?.role === 'HR';
+  const [today, setToday] = useState<AttendanceRecord | null>(null);
+  const [mine, setMine] = useState<AttendanceRecord[]>([]);
+  const [all, setAll] = useState<AttendanceRecord[]>([]);
   const [loading, setLoading] = useState(true);
-  const [clockActionLoading, setClockActionLoading] = useState(false);
-  const [actionMessage, setActionMessage] = useState<string | null>(null);
-  const [searchFilter, setSearchFilter] = useState('');
-  const [statusFilter, setStatusFilter] = useState('All');
-  const [editingRecord, setEditingRecord] = useState<AttendanceRecord | null>(null);
-  const [editStatus, setEditStatus] = useState<string>('Present');
-  const [editNotes, setEditNotes] = useState('');
+  const [period, setPeriod] = useState<'Daily' | 'Weekly' | 'Monthly'>('Weekly');
+  const [query, setQuery] = useState('');
+  const [status, setStatus] = useState('All');
+  const [department, setDepartment] = useState('All');
+  const [clockLoading, setClockLoading] = useState(false);
 
-  const fetchData = async () => {
+  const load = async () => {
     try {
-      const t = await apiRequest('/attendance/today'); setTodayRecord(t.record);
-      const m = await apiRequest<AttendanceRecord[]>('/attendance/my'); setMyAttendance(m);
-      if (user?.role === 'Admin') { const a = await apiRequest<AttendanceRecord[]>('/attendance/all'); setAllAttendance(a); }
-    } catch (err) { console.error(err); } finally { setLoading(false); }
+      const [todayResponse, mineResponse] = await Promise.all([apiRequest('/attendance/today'), apiRequest<AttendanceRecord[]>('/attendance/my')]);
+      setToday(todayResponse.record);
+      setMine(mineResponse);
+      if (isAdmin) setAll(await apiRequest<AttendanceRecord[]>('/attendance/all'));
+    } catch { showToast('Unable to load attendance', 'error'); }
+    finally { setLoading(false); }
   };
-  useEffect(() => { fetchData(); }, [user]);
+  useEffect(() => { load(); }, [user?.role]);
 
-  const handleCheckIn = async () => { setClockActionLoading(true); setActionMessage(null); try { await apiRequest('/attendance/check-in', 'POST'); setActionMessage('Checked in!'); await fetchData(); await refreshProfile(); } catch (err: any) { setActionMessage(err.message); } finally { setClockActionLoading(false); } };
-  const handleCheckOut = async () => { setClockActionLoading(true); setActionMessage(null); try { await apiRequest('/attendance/check-out', 'POST'); setActionMessage('Checked out!'); await fetchData(); await refreshProfile(); } catch (err: any) { setActionMessage(err.message); } finally { setClockActionLoading(false); } };
-  const handleSaveEdit = async () => { if (!editingRecord) return; try { await apiRequest(`/attendance/${editingRecord.id}`, 'PUT', { status: editStatus, notes: editNotes }); setEditingRecord(null); await fetchData(); } catch (err: any) { alert(err.message); } };
+  const clock = async (action: 'in' | 'out') => {
+    setClockLoading(true);
+    try { await apiRequest(`/attendance/check-${action}`, 'POST'); showToast(action === 'in' ? 'Checked in successfully' : 'Checked out successfully', 'success'); await load(); await refreshProfile(); }
+    catch (error: any) { showToast(error.message || 'Attendance action failed', 'error'); }
+    finally { setClockLoading(false); }
+  };
 
-  const isCheckedIn = !!todayRecord?.checkIn && !todayRecord?.checkOut;
-  const isCheckedOut = !!todayRecord?.checkOut;
-  const filteredAll = allAttendance.filter((r) => {
-    const q = searchFilter.toLowerCase();
-    return ((r.employeeName || '').toLowerCase().includes(q) || r.employeeId.toLowerCase().includes(q) || r.date.includes(searchFilter)) && (statusFilter === 'All' || r.status === statusFilter);
+  const working = Boolean(today?.checkIn && !today?.checkOut);
+  const complete = Boolean(today?.checkOut);
+  const history = period === 'Daily' ? mine.slice(0, 1) : period === 'Weekly' ? mine.slice(0, 7) : mine;
+  const presentCount = mine.filter((item) => item.status === 'Present' || item.status === 'Half-day').length;
+  const attendanceRate = mine.length ? Math.round((presentCount / mine.length) * 100) : 0;
+  const departments = ['All', ...Array.from(new Set(all.map((item) => item.department || 'General')))];
+  const filteredAll = all.filter((item) => {
+    const needle = query.toLowerCase();
+    return (!needle || (item.employeeName || '').toLowerCase().includes(needle) || item.employeeId.toLowerCase().includes(needle)) && (status === 'All' || item.status === status) && (department === 'All' || (item.department || 'General') === department);
   });
 
-  const statusBadge = (s: string) => {
-    const styles: Record<string, string> = { Present: 'bg-green-50 text-green-700 border-green-200', 'Half-day': 'bg-amber-50 text-amber-700 border-amber-200', Leave: 'bg-purple-50 text-purple-700 border-purple-200', Absent: 'bg-red-50 text-red-700 border-red-200' };
-    return <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold border ${styles[s] || 'bg-gray-50 text-gray-500 border-gray-200'}`}>{s}</span>;
+  const exportCsv = () => {
+    const rows = [['Employee', 'Employee ID', 'Date', 'Check-in', 'Check-out', 'Hours', 'Status'], ...filteredAll.map((item) => [item.employeeName || '', item.employeeId, formatDate(item.date), formatTime(item.checkIn), formatTime(item.checkOut), formatHours(item.checkIn, item.checkOut, item.totalHours), item.status])];
+    const url = URL.createObjectURL(new Blob([rows.map((row) => row.map((cell) => `"${cell}"`).join(',')).join('\n')], { type: 'text/csv' }));
+    const link = document.createElement('a'); link.href = url; link.download = 'dayflow-attendance.csv'; link.click(); URL.revokeObjectURL(url);
   };
 
-  return (
-    <div className="space-y-6">
-      {/* Header + Clock Control */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2"><Clock className="w-6 h-6 text-indigo-600" /> Attendance Tracking</h1>
-          <p className="text-sm text-gray-500 mt-1">Record check-in/out, review timesheets, and manage records.</p>
-        </div>
-        <div className="panel px-4 py-3 rounded-xl flex items-center space-x-4">
-          <div className="text-right">
-            <p className="text-[10px] text-gray-400 font-semibold uppercase">Now</p>
-            <p className="text-base font-bold text-gray-800 font-mono">{new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
-          </div>
-          <div className="h-8 w-px bg-gray-200" />
-          {!isCheckedIn && !isCheckedOut ? (
-            <button onClick={handleCheckIn} disabled={clockActionLoading} className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-semibold text-xs rounded-lg flex items-center space-x-1.5 shadow-sm"><Play className="w-3.5 h-3.5 fill-current" /><span>Clock In</span></button>
-          ) : isCheckedIn ? (
-            <button onClick={handleCheckOut} disabled={clockActionLoading} className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-semibold text-xs rounded-lg flex items-center space-x-1.5 shadow-sm"><Square className="w-3.5 h-3.5 fill-current" /><span>Clock Out</span></button>
-          ) : (<span className="text-xs font-semibold text-gray-400 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-200">Done</span>)}
-        </div>
-      </div>
-      {actionMessage && <div className="p-3 rounded-lg bg-indigo-50 border border-indigo-100 text-indigo-700 text-xs font-medium text-center">{actionMessage}</div>}
-
-      {/* My Attendance */}
-      <div className="panel-elevated rounded-xl overflow-hidden">
-        <div className="px-5 py-4 border-b border-gray-100"><h3 className="font-semibold text-sm text-gray-800 flex items-center gap-2"><Calendar className="w-4 h-4 text-indigo-500" /> My Attendance History</h3></div>
-        <table className="w-full text-left text-xs">
-          <thead><tr className="bg-gray-50 border-b border-gray-100 text-gray-500 uppercase tracking-wider text-[10px]"><th className="py-2.5 px-5">Date</th><th className="py-2.5 px-5">Check-In</th><th className="py-2.5 px-5">Check-Out</th><th className="py-2.5 px-5">Hours</th><th className="py-2.5 px-5">Status</th></tr></thead>
-          <tbody className="divide-y divide-gray-50">
-            {myAttendance.length === 0 ? <tr><td colSpan={5} className="py-8 text-center text-gray-400">No records yet.</td></tr> : myAttendance.map((r) => (
-              <tr key={r.id} className="hover:bg-gray-50/50"><td className="py-2.5 px-5 font-mono font-medium text-gray-700">{r.date}</td><td className="py-2.5 px-5 font-mono text-green-600">{r.checkIn || '--'}</td><td className="py-2.5 px-5 font-mono text-red-500">{r.checkOut || '--'}</td><td className="py-2.5 px-5 font-mono text-gray-600">{r.totalHours ? `${r.totalHours}h` : '--'}</td><td className="py-2.5 px-5">{statusBadge(r.status)}</td></tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Admin Master Attendance */}
-      {user?.role === 'Admin' && (
-        <div className="panel-elevated rounded-xl overflow-hidden">
-          <div className="px-5 py-4 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <h3 className="font-semibold text-sm text-gray-800 flex items-center gap-2"><Filter className="w-4 h-4 text-amber-500" /> All Employee Attendance</h3>
-            <div className="flex items-center space-x-2">
-              <div className="relative"><Search className="w-3.5 h-3.5 text-gray-400 absolute left-2.5 top-2" /><input type="text" placeholder="Filter..." value={searchFilter} onChange={(e) => setSearchFilter(e.target.value)} className="pl-7 pr-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs text-gray-800 focus:outline-none focus:border-indigo-400 w-40" /></div>
-              <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs text-gray-700 focus:outline-none focus:border-indigo-400">
-                <option value="All">All Status</option><option value="Present">Present</option><option value="Half-day">Half-day</option><option value="Leave">Leave</option><option value="Absent">Absent</option>
-              </select>
-            </div>
-          </div>
-          <table className="w-full text-left text-xs">
-            <thead><tr className="bg-gray-50 border-b border-gray-100 text-gray-500 uppercase tracking-wider text-[10px]"><th className="py-2.5 px-5">Employee</th><th className="py-2.5 px-5">Date</th><th className="py-2.5 px-5">In</th><th className="py-2.5 px-5">Out</th><th className="py-2.5 px-5">Hours</th><th className="py-2.5 px-5">Status</th><th className="py-2.5 px-5 text-right">Action</th></tr></thead>
-            <tbody className="divide-y divide-gray-50">
-              {filteredAll.map((r) => (
-                <tr key={r.id} className="hover:bg-gray-50/50">
-                  <td className="py-2.5 px-5"><span className="font-medium text-gray-800">{r.employeeName || r.employeeId}</span><span className="text-[10px] text-gray-400 ml-1.5 font-mono">{r.employeeId}</span></td>
-                  <td className="py-2.5 px-5 font-mono text-gray-600">{r.date}</td>
-                  <td className="py-2.5 px-5 font-mono text-green-600">{r.checkIn || '--'}</td>
-                  <td className="py-2.5 px-5 font-mono text-red-500">{r.checkOut || '--'}</td>
-                  <td className="py-2.5 px-5 font-mono text-gray-600">{r.totalHours ? `${r.totalHours}h` : '--'}</td>
-                  <td className="py-2.5 px-5">{statusBadge(r.status)}</td>
-                  <td className="py-2.5 px-5 text-right"><button onClick={() => { setEditingRecord(r); setEditStatus(r.status); setEditNotes(r.notes || ''); }} className="px-2.5 py-1 bg-gray-100 hover:bg-indigo-600 hover:text-white text-gray-600 rounded-md text-[11px] flex items-center space-x-1 ml-auto transition-colors"><Edit2 className="w-3 h-3" /><span>Edit</span></button></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      {/* Edit Modal */}
-      {editingRecord && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30 backdrop-blur-sm">
-          <div className="bg-white w-full max-w-md p-6 rounded-2xl shadow-xl border border-gray-200">
-            <h3 className="font-bold text-base text-gray-900 mb-1">Edit Attendance</h3>
-            <p className="text-xs text-gray-500 mb-4"><span className="font-semibold text-gray-700">{editingRecord.employeeName}</span> — {editingRecord.date}</p>
-            <div className="space-y-3 text-xs">
-              <div><label className="block text-gray-600 font-medium mb-1">Status</label><select value={editStatus} onChange={(e) => setEditStatus(e.target.value)} className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-lg text-gray-800 focus:outline-none focus:border-indigo-400"><option value="Present">Present</option><option value="Half-day">Half-day</option><option value="Leave">Leave</option><option value="Absent">Absent</option></select></div>
-              <div><label className="block text-gray-600 font-medium mb-1">Notes</label><input type="text" placeholder="Reason for change..." value={editNotes} onChange={(e) => setEditNotes(e.target.value)} className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-lg text-gray-800 focus:outline-none focus:border-indigo-400" /></div>
-              <div className="pt-3 flex items-center justify-end space-x-2">
-                <button onClick={() => setEditingRecord(null)} className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg">Cancel</button>
-                <button onClick={handleSaveEdit} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg shadow-sm">Save</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
+  if (loading) return <LoadingState label="Loading attendance workspace..." />;
+  return <div className="page-enter space-y-6">
+    <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end"><div><p className="text-[10px] font-bold uppercase tracking-[0.18em] text-indigo-600">Workday signal</p><h1 className="mt-1 text-2xl font-extrabold tracking-tight text-slate-950">{isAdmin ? 'Attendance overview' : 'My attendance'}</h1><p className="mt-1 text-sm text-slate-500">{isAdmin ? 'See how the workforce is showing up today.' : 'Keep your workday accurate, visible, and on track.'}</p></div>{isAdmin ? <button onClick={exportCsv} className="inline-flex items-center justify-center gap-2 rounded-lg bg-slate-950 px-3 py-2 text-xs font-bold text-white hover:bg-indigo-700"><Download className="h-3.5 w-3.5" /> Export CSV</button> : null}</div>
+    {!isAdmin && <section className="grid grid-cols-1 gap-4 lg:grid-cols-[1.1fr_.9fr]"><div className="relative overflow-hidden rounded-2xl bg-[#211a4b] p-6 text-white"><div className="relative z-10"><div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.18em] text-indigo-200"><span className="h-2 w-2 rounded-full bg-emerald-400" /> Today</div><h2 className="mt-3 text-xl font-extrabold">{complete ? 'Completed' : working ? 'Currently working' : 'Not started'}</h2><div className="mt-5 grid grid-cols-3 gap-3"><div><p className="text-[10px] text-indigo-200">Check-in</p><p className="mt-1 text-lg font-bold">{formatTime(today?.checkIn)}</p></div><div><p className="text-[10px] text-indigo-200">Check-out</p><p className="mt-1 text-lg font-bold">{formatTime(today?.checkOut)}</p></div><div><p className="text-[10px] text-indigo-200">Worked</p><p className="mt-1 text-lg font-bold">{formatHours(today?.checkIn, today?.checkOut, today?.totalHours)}</p></div></div><div className="mt-6">{!working && !complete && <button disabled={clockLoading} onClick={() => clock('in')} className="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-xs font-extrabold text-indigo-900"><Play className="h-3.5 w-3.5 fill-current" /> Check in</button>}{working && <button disabled={clockLoading} onClick={() => clock('out')} className="inline-flex items-center gap-2 rounded-lg bg-rose-500 px-4 py-2 text-xs font-extrabold text-white"><Square className="h-3.5 w-3.5 fill-current" /> Check out</button>}</div></div><div className="absolute -right-24 -top-24 h-64 w-64 rounded-full border border-white/10" /></div><div className="panel-elevated rounded-2xl p-5"><div className="flex items-center gap-2"><Timer className="h-4 w-4 text-indigo-600" /><h2 className="text-sm font-bold text-slate-900">Today's timeline</h2></div><div className="relative mt-6 space-y-6 pl-7 text-xs before:absolute before:left-[7px] before:top-1 before:h-[calc(100%-10px)] before:w-px before:bg-indigo-100"><div className="relative"><span className="absolute -left-7 top-0 h-3.5 w-3.5 rounded-full border-2 border-indigo-600 bg-white" /><p className="font-bold text-slate-800">{formatTime(today?.checkIn)} <span className="font-normal text-slate-400">Check-in</span></p></div><div className="relative"><span className="absolute -left-7 top-0 h-3.5 w-3.5 rounded-full border-2 border-indigo-200 bg-white" /><p className="font-bold text-slate-800">{working ? 'In progress' : complete ? formatHours(today?.checkIn, today?.checkOut, today?.totalHours) : 'Awaiting check-in'} <span className="font-normal text-slate-400">Work block</span></p></div><div className="relative"><span className="absolute -left-7 top-0 h-3.5 w-3.5 rounded-full border-2 border-slate-200 bg-white" /><p className="font-bold text-slate-800">{formatTime(today?.checkOut)} <span className="font-normal text-slate-400">Check-out</span></p></div></div></div></section>}
+    <div className="grid grid-cols-2 gap-3 lg:grid-cols-4"><StatCard label="This month" value={`${attendanceRate}%`} subLabel="Attendance rate" icon={CalendarDays} accent="indigo" /><StatCard label="Worked hours" value={`${mine.reduce((sum, item) => sum + (item.totalHours || 0), 0).toFixed(1)}h`} subLabel="Recorded total" icon={Clock3} accent="emerald" /><StatCard label="Half-days" value={mine.filter((item) => item.status === 'Half-day').length} subLabel="Needs attention" icon={Timer} accent="amber" /><StatCard label="Leave days" value={mine.filter((item) => item.status === 'Leave').length} subLabel="Attendance records" icon={CalendarDays} accent="blue" /></div>
+    {!isAdmin && <div className="panel-elevated rounded-2xl p-5"><div className="flex flex-wrap items-center justify-between gap-3"><div><p className="text-[10px] font-bold uppercase tracking-[0.16em] text-indigo-500">History</p><h2 className="mt-1 text-base font-bold text-slate-900">Your attendance records</h2></div><div className="flex rounded-lg border border-slate-200 bg-white p-1 text-xs">{(['Daily', 'Weekly', 'Monthly'] as const).map((item) => <button key={item} onClick={() => setPeriod(item)} className={`rounded-md px-3 py-1.5 font-semibold ${period === item ? 'bg-indigo-600 text-white' : 'text-slate-500'}`}>{item}</button>)}</div></div><div className="mt-4 overflow-x-auto"><table className="w-full min-w-[650px] text-left text-xs"><thead><tr className="border-b border-slate-100 bg-slate-50 text-[10px] uppercase tracking-[0.12em] text-slate-500"><th className="px-4 py-3">Date</th><th className="px-4 py-3">Check-in</th><th className="px-4 py-3">Check-out</th><th className="px-4 py-3">Hours</th><th className="px-4 py-3">Status</th></tr></thead><tbody className="divide-y divide-slate-100">{history.map((item) => <tr key={item.id} className="hover:bg-indigo-50/30"><td className="px-4 py-3 font-semibold text-slate-700">{formatDate(item.date)}</td><td className="px-4 py-3 text-slate-600">{formatTime(item.checkIn)}</td><td className="px-4 py-3 text-slate-600">{formatTime(item.checkOut)}</td><td className="px-4 py-3 font-semibold text-slate-700">{formatHours(item.checkIn, item.checkOut, item.totalHours)}</td><td className="px-4 py-3"><StatusBadge label={item.status} tone={tone(item.status)} /></td></tr>)}</tbody></table></div></div>}
+    {isAdmin && <div className="panel-elevated rounded-2xl p-5"><div className="grid grid-cols-1 gap-3 md:grid-cols-[1fr_180px_180px]"><div className="relative"><Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-slate-400" /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search employee or ID" className="w-full rounded-lg border border-slate-200 py-2 pl-8 pr-3 text-xs" /></div><select value={department} onChange={(event) => setDepartment(event.target.value)} className="rounded-lg border border-slate-200 px-3 py-2 text-xs">{departments.map((item) => <option key={item}>{item}</option>)}</select><select value={status} onChange={(event) => setStatus(event.target.value)} className="rounded-lg border border-slate-200 px-3 py-2 text-xs"><option>All</option><option>Present</option><option>Absent</option><option>Half-day</option><option>Leave</option></select></div><div className="mt-4 overflow-x-auto"><table className="w-full min-w-[850px] text-left text-xs"><thead><tr className="border-b border-slate-100 bg-slate-50 text-[10px] uppercase tracking-[0.12em] text-slate-500"><th className="px-4 py-3">Employee</th><th className="px-4 py-3">ID</th><th className="px-4 py-3">Date</th><th className="px-4 py-3">Check-in</th><th className="px-4 py-3">Check-out</th><th className="px-4 py-3">Hours</th><th className="px-4 py-3">Status</th></tr></thead><tbody className="divide-y divide-slate-100">{filteredAll.map((item) => <tr key={item.id} className="hover:bg-indigo-50/30"><td className="px-4 py-3 font-semibold text-slate-700">{item.employeeName || 'Unknown'}</td><td className="px-4 py-3 text-slate-500">{item.employeeId}</td><td className="px-4 py-3 text-slate-600">{formatDate(item.date)}</td><td className="px-4 py-3 text-slate-600">{formatTime(item.checkIn)}</td><td className="px-4 py-3 text-slate-600">{formatTime(item.checkOut)}</td><td className="px-4 py-3 font-semibold text-slate-700">{formatHours(item.checkIn, item.checkOut, item.totalHours)}</td><td className="px-4 py-3"><StatusBadge label={item.status} tone={tone(item.status)} /></td></tr>)}</tbody></table></div></div>}
+  </div>;
 };

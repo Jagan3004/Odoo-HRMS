@@ -1,0 +1,3 @@
+import React from 'react';
+import { ShieldAlert } from 'lucide-react';
+export const AccessDenied: React.FC<{ onGoHome: () => void }> = ({ onGoHome }) => <div className="panel-elevated mx-auto mt-8 max-w-xl rounded-xl p-8 text-center"><ShieldAlert className="mx-auto h-10 w-10 text-rose-500" /><h2 className="mt-3 text-lg font-bold text-slate-900">Access Denied</h2><p className="mt-1 text-sm text-slate-500">You do not have permission to access this section.</p><button onClick={onGoHome} className="mt-5 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white">Go to Dashboard</button></div>;

@@ -72,13 +72,24 @@ export function mapEmployee(row: any) {
 
 /** Map an attendance row */
 export function mapAttendance(row: any) {
+  const checkIn = row.check_in ? String(row.check_in).split('.')[0] : undefined;
+  const checkOut = row.check_out ? String(row.check_out).split('.')[0] : undefined;
+  let totalHours = row.total_hours === null || row.total_hours === undefined ? undefined : Number(row.total_hours);
+
+  if (checkIn && checkOut) {
+    const [inHour, inMinute] = checkIn.split(':').map(Number);
+    const [outHour, outMinute] = checkOut.split(':').map(Number);
+    const durationMinutes = (outHour * 60 + outMinute) - (inHour * 60 + inMinute);
+    if (durationMinutes > 0) totalHours = Math.round((durationMinutes / 60) * 100) / 100;
+  }
+
   return {
     id: row.id,
     employeeId: row.employee_id,
     date: row.date instanceof Date ? row.date.toISOString().split('T')[0] : row.date,
-    checkIn: row.check_in || undefined,
-    checkOut: row.check_out || undefined,
-    totalHours: row.total_hours ? Number(row.total_hours) : undefined,
+    checkIn,
+    checkOut,
+    totalHours: totalHours !== undefined && totalHours >= 0 ? totalHours : undefined,
     status: row.status,
     notes: row.notes || '',
     employeeName: row.employee_name || row.emp_name || undefined,

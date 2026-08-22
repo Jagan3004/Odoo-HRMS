@@ -1,9 +1,8 @@
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
 @import "tailwindcss";
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
-
 @theme {
-  --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-sans: 'Manrope', system-ui, sans-serif;
   --color-brand-50: #eef2ff;
   --color-brand-100: #e0e7ff;
   --color-brand-200: #c7d2fe;
@@ -16,13 +15,17 @@
 
 @layer base {
   body {
-    @apply bg-gray-50 text-gray-900 font-sans antialiased min-h-screen;
+    @apply min-h-screen bg-[#f6f7fb] font-sans text-slate-950 antialiased;
+    background-image: radial-gradient(circle at 88% 0%, rgb(99 102 241 / 0.08), transparent 27rem), linear-gradient(180deg, #fbfbfe 0%, #f6f7fb 42%, #f4f5f9 100%);
   }
 
   ::selection {
-    background: #c7d2fe;
+    background: #ddd6fe;
     color: #312e81;
   }
+
+  button, input, select, textarea { font: inherit; }
+  button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 3px solid rgb(99 102 241 / 0.25); outline-offset: 2px; }
 }
 
 /* Custom Scrollbar — subtle light mode */
@@ -44,30 +47,39 @@
 /* Professional Panel Styles */
 .panel {
   background: #ffffff;
-  border: 1px solid #e2e8f0;
-  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.04), 0 1px 2px -1px rgb(0 0 0 / 0.04);
+  border: 1px solid #e8eaf2;
+  box-shadow: 0 1px 2px rgb(15 23 42 / 0.02);
 }
 
 .panel-elevated {
   background: #ffffff;
-  border: 1px solid #e2e8f0;
-  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.06), 0 2px 4px -2px rgb(0 0 0 / 0.06);
+  border: 1px solid #e6e8f1;
+  box-shadow: 0 16px 35px -25px rgb(31 41 78 / 0.28);
 }
 
 .stat-card {
   background: #ffffff;
-  border: 1px solid #e2e8f0;
-  transition: all 0.2s ease;
+  border: 1px solid #e6e8f1;
+  transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
 }
 
 .stat-card:hover {
+  transform: translateY(-2px);
   border-color: #c7d2fe;
-  box-shadow: 0 4px 12px -2px rgb(99 102 241 / 0.1);
+  box-shadow: 0 14px 25px -20px rgb(79 70 229 / 0.5);
 }
 
 /* Subtle gradient for brand areas */
 .brand-gradient {
-  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #6366f1 100%);
+  background: linear-gradient(135deg, #312e81 0%, #4f46e5 55%, #8b5cf6 100%);
+}
+
+.page-enter { animation: page-enter 220ms ease both; }
+.drawer-shadow { box-shadow: 18px 0 50px -30px rgb(15 23 42 / 0.5); }
+
+@keyframes page-enter {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 /* Print styles */

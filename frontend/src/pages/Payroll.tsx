@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { apiRequest } from '../api/client';
 import { Payslip, SalaryStructure, Employee } from '../types';
-import { CreditCard, Download, Eye, X, DollarSign, Minus, Plus, Save } from 'lucide-react';
+import { CreditCard, Download, Eye, X, Wallet, Minus, Plus, Save } from 'lucide-react';
+import { formatCurrency, formatDate } from '../utils/format';
 
 interface PayrollOverviewItem {
   employeeId: string;
@@ -83,17 +84,17 @@ Paid Days: ${payslip.paidDays}
 Date Issued: ${payslip.issuedDate}
 ${'─'.repeat(50)}
 EARNINGS
-  Basic Salary        ₹${sal.basic.toLocaleString()}
-  HRA                 ₹${sal.hra.toLocaleString()}
-  Special Allowance   ₹${sal.specialAllowance.toLocaleString()}
-  Conveyance          ₹${sal.conveyance.toLocaleString()}
-  Gross Salary        ₹${sal.grossSalary.toLocaleString()}
+  Basic Salary        ${formatCurrency(sal.basic)}
+  HRA                 ${formatCurrency(sal.hra)}
+  Special Allowance   ${formatCurrency(sal.specialAllowance)}
+  Conveyance          ${formatCurrency(sal.conveyance)}
+  Gross Salary        ${formatCurrency(sal.grossSalary)}
 ${'─'.repeat(50)}
 DEDUCTIONS
-  PF Deduction        ₹${sal.pfDeduction.toLocaleString()}
-  Tax Deduction       ₹${sal.taxDeduction.toLocaleString()}
+  PF Deduction        ${formatCurrency(sal.pfDeduction)}
+  Tax Deduction       ${formatCurrency(sal.taxDeduction)}
 ${'─'.repeat(50)}
-NET PAY:              ₹${sal.netSalary.toLocaleString()}
+NET PAY:              ${formatCurrency(sal.netSalary)}
 ${'═'.repeat(50)}`;
     const blob = new Blob([content], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
@@ -115,7 +116,7 @@ ${'═'.repeat(50)}`;
               className="px-3 py-2 bg-white border border-gray-200 rounded-lg text-xs text-gray-700 focus:outline-none focus:border-indigo-400" />
             <button onClick={handleGeneratePayslips} disabled={generateLoading}
               className="px-4 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-semibold text-xs rounded-lg shadow-sm flex items-center space-x-2 transition-all disabled:opacity-50">
-              <DollarSign className="w-4 h-4" /><span>{generateLoading ? 'Generating...' : 'Generate Payslips'}</span>
+              <Wallet className="w-4 h-4" /><span>{generateLoading ? 'Generating...' : 'Generate Payslips'}</span>
             </button>
           </div>
         )}
@@ -127,7 +128,7 @@ ${'═'.repeat(50)}`;
           <h3 className="font-semibold text-sm text-gray-900 mb-4">My Salary Structure</h3>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             {[
-              { label: 'Basic', value: mySalary.basic, icon: DollarSign, color: 'indigo' },
+              { label: 'Basic', value: mySalary.basic, icon: Wallet, color: 'indigo' },
               { label: 'HRA', value: mySalary.hra, icon: Plus, color: 'green' },
               { label: 'Deductions', value: mySalary.pfDeduction + mySalary.taxDeduction, icon: Minus, color: 'red' },
               { label: 'Net Pay', value: mySalary.netSalary, icon: CreditCard, color: 'purple' },
@@ -135,7 +136,7 @@ ${'═'.repeat(50)}`;
               <div key={s.label} className="text-center p-4 bg-gray-50 rounded-lg border border-gray-200">
                 <Icon className={`w-5 h-5 text-${s.color}-500 mx-auto mb-2`} />
                 <p className="text-xs text-gray-500">{s.label}</p>
-                <p className="text-xl font-bold text-gray-900 mt-0.5 font-mono">₹{s.value.toLocaleString()}</p>
+                <p className="text-xl font-bold text-gray-900 mt-0.5 font-mono">{formatCurrency(s.value)}</p>
               </div>
             ); })}
           </div>
@@ -145,7 +146,7 @@ ${'═'.repeat(50)}`;
       {/* Admin Salary Structures Table */}
       {user?.role === 'Admin' && payrollOverview.length > 0 && (
         <div className="panel-elevated rounded-xl overflow-hidden">
-          <div className="px-5 py-4 border-b border-gray-100"><h3 className="font-semibold text-sm text-gray-800 flex items-center gap-2"><DollarSign className="w-4 h-4 text-amber-500" /> Salary Structures</h3></div>
+          <div className="px-5 py-4 border-b border-gray-100"><h3 className="font-semibold text-sm text-gray-800 flex items-center gap-2"><Wallet className="w-4 h-4 text-amber-500" /> Salary Structures</h3></div>
           <table className="w-full text-left text-xs">
             <thead><tr className="bg-gray-50 border-b border-gray-100 text-gray-500 uppercase tracking-wider text-[10px]"><th className="py-2.5 px-5">Employee</th><th className="py-2.5 px-5">Department</th><th className="py-2.5 px-5">Basic</th><th className="py-2.5 px-5">Gross</th><th className="py-2.5 px-5">Net</th><th className="py-2.5 px-5 text-right">Action</th></tr></thead>
             <tbody className="divide-y divide-gray-50">
@@ -153,9 +154,9 @@ ${'═'.repeat(50)}`;
                 <tr key={item.id} className="hover:bg-gray-50/50">
                   <td className="py-2.5 px-5"><span className="font-medium text-gray-800">{item.name}</span><span className="text-[10px] text-gray-400 ml-1.5 font-mono">{item.employeeId}</span></td>
                   <td className="py-2.5 px-5 text-gray-600">{item.department}</td>
-                  <td className="py-2.5 px-5 font-mono text-gray-700">₹{item.salaryStructure.basic.toLocaleString()}</td>
-                  <td className="py-2.5 px-5 font-mono text-gray-700">₹{item.salaryStructure.grossSalary.toLocaleString()}</td>
-                  <td className="py-2.5 px-5 font-mono font-semibold text-indigo-600">₹{item.salaryStructure.netSalary.toLocaleString()}</td>
+                  <td className="py-2.5 px-5 font-mono text-gray-700">{formatCurrency(item.salaryStructure.basic)}</td>
+                  <td className="py-2.5 px-5 font-mono text-gray-700">{formatCurrency(item.salaryStructure.grossSalary)}</td>
+                  <td className="py-2.5 px-5 font-mono font-semibold text-indigo-600">{formatCurrency(item.salaryStructure.netSalary)}</td>
                   <td className="py-2.5 px-5 text-right">
                     <button onClick={() => { setEditingSalary(item); setSalaryForm({ ...item.salaryStructure }); }}
                       className="px-3 py-1 bg-gray-100 hover:bg-indigo-600 hover:text-white text-gray-600 rounded-md text-[11px] transition-colors">Edit</button>
@@ -177,10 +178,10 @@ ${'═'.repeat(50)}`;
               <tr key={p.id} className="hover:bg-gray-50/50">
                 <td className="py-2.5 px-5 font-medium text-gray-800">{p.month}</td>
                 <td className="py-2.5 px-5 text-gray-600">{p.paidDays}</td>
-                <td className="py-2.5 px-5 font-mono text-gray-700">₹{p.salaryStructure.grossSalary.toLocaleString()}</td>
-                <td className="py-2.5 px-5 font-mono text-red-500">-₹{(p.salaryStructure.pfDeduction + p.salaryStructure.taxDeduction).toLocaleString()}</td>
-                <td className="py-2.5 px-5 font-mono font-semibold text-indigo-600">₹{p.salaryStructure.netSalary.toLocaleString()}</td>
-                <td className="py-2.5 px-5 text-gray-400 font-mono">{p.issuedDate}</td>
+                <td className="py-2.5 px-5 font-mono text-gray-700">{formatCurrency(p.salaryStructure.grossSalary)}</td>
+                <td className="py-2.5 px-5 font-mono text-red-500">-{formatCurrency(p.salaryStructure.pfDeduction + p.salaryStructure.taxDeduction)}</td>
+                <td className="py-2.5 px-5 font-mono font-semibold text-indigo-600">{formatCurrency(p.salaryStructure.netSalary)}</td>
+                <td className="py-2.5 px-5 text-gray-400 font-mono">{formatDate(p.issuedDate)}</td>
                 <td className="py-2.5 px-5"><span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold border ${p.status === 'Paid' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>{p.status}</span></td>
                 <td className="py-2.5 px-5 text-right space-x-1">
                   <button onClick={() => setViewSlip(p)} className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors"><Eye className="w-3.5 h-3.5" /></button>

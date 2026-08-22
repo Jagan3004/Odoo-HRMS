@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { User, Employee } from '../types';
+import { User, Employee, Role } from '../types';
 import { apiRequest } from '../api/client';
 
 interface AuthContextType {
@@ -10,7 +10,7 @@ interface AuthContextType {
   login: (email: string, pass: string) => Promise<void>;
   register: (data: any) => Promise<void>;
   logout: () => void;
-  demoLogin: (role: 'Admin' | 'Employee') => Promise<void>;
+  demoLogin: (role: Role) => Promise<void>;
   refreshProfile: () => Promise<void>;
 }
 
@@ -65,9 +65,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setEmployee(null);
   };
 
-  const demoLogin = async (role: 'Admin' | 'Employee') => {
-    const email = role === 'Admin' ? 'admin@dayflow.com' : 'employee@dayflow.com';
-    const password = role === 'Admin' ? 'admin123' : 'emp123';
+  const demoLogin = async (role: Role) => {
+    const isAdmin = role === 'Admin' || role === 'HR';
+    const email = isAdmin ? 'admin@dayflow.com' : 'employee@dayflow.com';
+    const password = isAdmin ? 'admin123' : 'emp123';
     await login(email, password);
   };
 

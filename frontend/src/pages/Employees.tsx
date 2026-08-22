@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { apiRequest } from '../api/client';
 import { Employee, Role } from '../types';
 import { Users, Search, UserPlus, Mail, Phone, Building, Briefcase, Calendar, X, Trash2, Shield } from 'lucide-react';
+import { formatCurrency, formatDate } from '../utils/format';
 
 interface EmployeesProps { onSelectEmployee?: (emp: Employee) => void; setActiveTab?: (tab: string) => void; }
 
@@ -111,8 +112,8 @@ export const Employees: React.FC<EmployeesProps> = () => {
                     <p className="text-xs text-gray-600 flex items-center gap-1"><Mail className="w-3 h-3 text-gray-400" /> {emp.email}</p>
                     <p className="text-xs text-gray-400 flex items-center gap-1 mt-0.5"><Phone className="w-3 h-3 text-gray-400" /> {emp.phone}</p>
                   </td>
-                  <td className="py-3.5 px-5 text-xs text-gray-500">{emp.joiningDate}</td>
-                  <td className="py-3.5 px-5 text-sm font-semibold text-gray-800 font-mono">₹{emp.salaryStructure.netSalary.toLocaleString()}</td>
+                  <td className="py-3.5 px-5 text-xs text-gray-500">{formatDate(emp.joiningDate)}</td>
+                  <td className="py-3.5 px-5 text-sm font-semibold text-gray-800 font-mono">{formatCurrency(emp.salaryStructure.netSalary)}</td>
                   {user?.role === 'Admin' && (
                     <td className="py-3.5 px-5 text-right">
                       <button onClick={() => handleDelete(emp.id, emp.name)} className="p-1.5 text-gray-400 hover:text-red-500 rounded-md hover:bg-red-50 transition-colors" title="Remove">
@@ -155,7 +156,7 @@ export const Employees: React.FC<EmployeesProps> = () => {
                 <div><label className="block text-gray-600 font-medium mb-1">Role</label><select value={newEmp.role} onChange={(e) => setNewEmp({ ...newEmp, role: e.target.value as any })} className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-900 focus:outline-none focus:border-indigo-400"><option value="Employee">Employee</option><option value="Admin">Admin / HR</option></select></div>
               </div>
               <div className="pt-2 border-t border-gray-100">
-                <span className="text-xs font-semibold text-gray-700 block mb-2">Salary Structure ($/mo)</span>
+                <span className="text-xs font-semibold text-gray-700 block mb-2">Salary Structure (INR / month)</span>
                 <div className="grid grid-cols-3 gap-2">
                   <div><label className="block text-[10px] text-gray-400">Basic</label><input type="number" value={newEmp.basic} onChange={(e) => setNewEmp({ ...newEmp, basic: Number(e.target.value) })} className="w-full px-2.5 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-gray-900" /></div>
                   <div><label className="block text-[10px] text-gray-400">HRA</label><input type="number" value={newEmp.hra} onChange={(e) => setNewEmp({ ...newEmp, hra: Number(e.target.value) })} className="w-full px-2.5 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-gray-900" /></div>
