@@ -9,11 +9,6 @@
 -- Connect to dayflow_hrms before running below
 
 -- ============================================================
--- EXTENSIONS
--- ============================================================
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-
--- ============================================================
 -- DROP EXISTING TABLES (for clean re-runs)
 -- ============================================================
 DROP TABLE IF EXISTS notifications CASCADE;
@@ -27,7 +22,7 @@ DROP TABLE IF EXISTS users CASCADE;
 -- TABLE: users
 -- ============================================================
 CREATE TABLE users (
-    id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id              SERIAL PRIMARY KEY,
     employee_id     VARCHAR(20) UNIQUE NOT NULL,
     email           VARCHAR(255) UNIQUE NOT NULL,
     password_hash   VARCHAR(255) NOT NULL,
@@ -42,7 +37,7 @@ CREATE INDEX idx_users_employee_id ON users(employee_id);
 -- TABLE: employees
 -- ============================================================
 CREATE TABLE employees (
-    id                  UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id                  SERIAL PRIMARY KEY,
     employee_id         VARCHAR(20) UNIQUE NOT NULL REFERENCES users(employee_id) ON DELETE CASCADE,
     name                VARCHAR(255) NOT NULL,
     email               VARCHAR(255) NOT NULL,
@@ -77,7 +72,7 @@ CREATE INDEX idx_employees_employee_id ON employees(employee_id);
 -- TABLE: attendance
 -- ============================================================
 CREATE TABLE attendance (
-    id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id              SERIAL PRIMARY KEY,
     employee_id     VARCHAR(20) NOT NULL REFERENCES users(employee_id) ON DELETE CASCADE,
     date            DATE NOT NULL DEFAULT CURRENT_DATE,
     check_in        TIME,
@@ -95,7 +90,7 @@ CREATE INDEX idx_attendance_employee_date ON attendance(employee_id, date);
 -- TABLE: leaves
 -- ============================================================
 CREATE TABLE leaves (
-    id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id              SERIAL PRIMARY KEY,
     employee_id     VARCHAR(20) NOT NULL REFERENCES users(employee_id) ON DELETE CASCADE,
     employee_name   VARCHAR(255) NOT NULL,
     department      VARCHAR(100) NOT NULL,
@@ -118,7 +113,7 @@ CREATE INDEX idx_leaves_status ON leaves(status);
 -- TABLE: payslips
 -- ============================================================
 CREATE TABLE payslips (
-    id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id              SERIAL PRIMARY KEY,
     employee_id     VARCHAR(20) NOT NULL REFERENCES users(employee_id) ON DELETE CASCADE,
     month           VARCHAR(50) NOT NULL,
     month_code      VARCHAR(10) NOT NULL,
@@ -144,7 +139,7 @@ CREATE INDEX idx_payslips_month ON payslips(month_code);
 -- TABLE: notifications
 -- ============================================================
 CREATE TABLE notifications (
-    id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id              SERIAL PRIMARY KEY,
     user_id         VARCHAR(20) NOT NULL,
     title           VARCHAR(255) NOT NULL,
     message         TEXT NOT NULL,
@@ -161,12 +156,12 @@ CREATE INDEX idx_notifications_read ON notifications(read);
 -- ============================================================
 
 -- Users (password: admin123 / emp123 — bcrypt hashes)
-INSERT INTO users (id, employee_id, email, password_hash, role) VALUES
-    ('a0000001-0000-0000-0000-000000000001', 'HR-001',  'admin@dayflow.com',         '$2b$10$0hAnqaJx0l.QKkH/A1F7SuAQpfl5HGKh1SaVSc7S0tvRv2xrmn3cy', 'Admin'),
-    ('a0000001-0000-0000-0000-000000000002', 'EMP-101', 'employee@dayflow.com',       '$2b$10$4/iYhx35fCYZFeUpjDkCxeYRVBEmpOnlpuKg6aD1e.8ZzWVQ7oKBG', 'Employee'),
-    ('a0000001-0000-0000-0000-000000000003', 'EMP-102', 'john.doe@dayflow.com',       '$2b$10$4/iYhx35fCYZFeUpjDkCxeYRVBEmpOnlpuKg6aD1e.8ZzWVQ7oKBG', 'Employee'),
-    ('a0000001-0000-0000-0000-000000000004', 'EMP-103', 'emily.chen@dayflow.com',     '$2b$10$4/iYhx35fCYZFeUpjDkCxeYRVBEmpOnlpuKg6aD1e.8ZzWVQ7oKBG', 'Employee'),
-    ('a0000001-0000-0000-0000-000000000005', 'EMP-104', 'david.miller@dayflow.com',   '$2b$10$4/iYhx35fCYZFeUpjDkCxeYRVBEmpOnlpuKg6aD1e.8ZzWVQ7oKBG', 'Employee');
+INSERT INTO users (employee_id, email, password_hash, role) VALUES
+    ('HR-001',  'admin@dayflow.com',         '$2b$10$0hAnqaJx0l.QKkH/A1F7SuAQpfl5HGKh1SaVSc7S0tvRv2xrmn3cy', 'Admin'),
+    ('EMP-101', 'employee@dayflow.com',       '$2b$10$4/iYhx35fCYZFeUpjDkCxeYRVBEmpOnlpuKg6aD1e.8ZzWVQ7oKBG', 'Employee'),
+    ('EMP-102', 'john.doe@dayflow.com',       '$2b$10$4/iYhx35fCYZFeUpjDkCxeYRVBEmpOnlpuKg6aD1e.8ZzWVQ7oKBG', 'Employee'),
+    ('EMP-103', 'emily.chen@dayflow.com',     '$2b$10$4/iYhx35fCYZFeUpjDkCxeYRVBEmpOnlpuKg6aD1e.8ZzWVQ7oKBG', 'Employee'),
+    ('EMP-104', 'david.miller@dayflow.com',   '$2b$10$4/iYhx35fCYZFeUpjDkCxeYRVBEmpOnlpuKg6aD1e.8ZzWVQ7oKBG', 'Employee');
 
 -- Employees
 INSERT INTO employees (employee_id, name, email, role, designation, department, joining_date, phone, address, emergency_contact, avatar_url, manager_name,

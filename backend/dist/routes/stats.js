@@ -1,89 +1,119 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
-const database_1 = require("../database");
+const db_1 = require("../db");
 const auth_1 = require("../middleware/auth");
 const router = (0, express_1.Router)();
-const getTodayString = () => new Date().toISOString().split('T')[0];
-router.get('/dashboard', auth_1.authenticateToken, (req, res) => {
-    const data = database_1.db.getData();
-    const todayStr = getTodayString();
+router.get('/dashboard', auth_1.authenticateToken, async (req, res) => {
     const user = req.user;
     if (!user)
         return res.status(401).json({ message: 'Unauthorized' });
-    const totalEmployees = data.employees.length;
-    // Attendance stats for today
-    const todayAttendance = data.attendance.filter((a) => a.date === todayStr);
-    const presentToday = todayAttendance.filter((a) => a.status === 'Present' || a.status === 'Half-day').length;
-    // Leaves active today
-    const activeLeavesToday = data.leaves.filter((l) => l.status === 'Approved' && l.startDate <= todayStr && l.endDate >= todayStr).length;
-    const pendingLeaveRequests = data.leaves.filter((l) => l.status === 'Pending').length;
-    // Monthly Payroll total cost
-    const totalMonthlyPayroll = data.employees.reduce((acc, emp) => acc + emp.salaryStructure.netSalary, 0);
-    // Department distribution
-    const deptCounts = {};
-    data.employees.forEach((emp) => {
-        deptCounts[emp.department] = (deptCounts[emp.department] || 0) + 1;
-    });
-    const departmentBreakdown = Object.keys(deptCounts).map((dept) => ({
-        name: dept,
-        count: deptCounts[dept],
-    }));
-    // Weekly attendance chart data (past 7 days)
-    const attendanceTrend = [];
-    const todayDate = new Date();
-    for (let i = 6; i >= 0; i--) {
-        const d = new Date(todayDate);
-        d.setDate(todayDate.getDate() - i);
-        const dStr = d.toISOString().split('T')[0];
-        const dayLabel = d.toLocaleDateString('en-US', { weekday: 'short' });
-        const presentCount = data.attendance.filter((a) => a.date === dStr && (a.status === 'Present' || a.status === 'Half-day')).length;
-        const leaveCount = data.attendance.filter((a) => a.date === dStr && a.status === 'Leave').length;
-        attendanceTrend.push({
-            date: dayLabel,
-            fullDate: dStr,
-            Present: presentCount,
-            Leave: leaveCount,
-            Absent: Math.max(0, totalEmployees - presentCount - leaveCount),
+    try {
+        // Total employees
+        const empCountResult = await db_1.pool.query('SELECT COUNT(*) AS count FROM employees');
+        const totalEmployees = parseInt(empCountResult.rows[0].count);
+        // Present today
+        const presentResult = await db_1.pool.query(`SELECT COUNT(*) AS count FROM attendance
+       WHERE date = CURRENT_DATE AND status IN ('Present', 'Half-day')`);
+        const presentToday = parseInt(presentResult.rows[0].count);
+        // Active leaves today
+        const activeLeavesResult = await db_1.pool.query(`SELECT COUNT(*) AS count FROM leaves
+       WHERE status = 'Approved' AND start_date <= CURRENT_DATE AND end_date >= CURRENT_DATE`);
+        const activeLeavesToday = parseInt(activeLeavesResult.rows[0].count);
+        // Pending leave requests
+        const pendingResult = await db_1.pool.query(`SELECT COUNT(*) AS count FROM leaves WHERE status = 'Pending'`);
+        const pendingLeaveRequests = parseInt(pendingResult.rows[0].count);
+        // Total monthly payroll
+        const payrollResult = await db_1.pool.query('SELECT COALESCE(SUM(salary_net), 0) AS total FROM employees');
+        const totalMonthlyPayroll = Number(payrollResult.rows[0].total);
+        // Department distribution
+        const deptResult = await db_1.pool.query('SELECT department AS name, COUNT(*) AS count FROM employees GROUP BY department ORDER BY count DESC');
+        const departmentBreakdown = deptResult.rows.map((r) => ({
+            name: r.name,
+            count: parseInt(r.count),
+        }));
+        // Weekly attendance trend (past 7 days)
+        const attendanceTrend = [];
+        const todayDate = new Date();
+        for (let i = 6; i >= 0; i--) {
+            const d = new Date(todayDate);
+            d.setDate(todayDate.getDate() - i);
+            const dStr = d.toISOString().split('T')[0];
+            const dayLabel = d.toLocaleDateString('en-US', { weekday: 'short' });
+            const dayResult = await db_1.pool.query(`SELECT
+          COUNT(*) FILTER (WHERE status IN ('Present', 'Half-day')) AS present,
+          COUNT(*) FILTER (WHERE status = 'Leave') AS on_leave
+         FROM attendance WHERE date = $1`, [dStr]);
+            const present = parseInt(dayResult.rows[0].present) || 0;
+            const onLeave = parseInt(dayResult.rows[0].on_leave) || 0;
+            attendanceTrend.push({
+                date: dayLabel,
+                fullDate: dStr,
+                Present: present,
+                Leave: onLeave,
+                Absent: Math.max(0, totalEmployees - present - onLeave),
+            });
+        }
+        // Current employee specific
+        const currentEmpResult = await db_1.pool.query('SELECT * FROM employees WHERE employee_id = $1', [user.employeeId]);
+        const currentEmp = currentEmpResult.rows.length > 0 ? (0, db_1.mapEmployee)(currentEmpResult.rows[0]) : null;
+        const userAttResult = await db_1.pool.query('SELECT * FROM attendance WHERE employee_id = $1 AND date = CURRENT_DATE', [user.employeeId]);
+        const userAttendanceToday = userAttResult.rows.length > 0 ? (0, db_1.mapAttendance)(userAttResult.rows[0]) : null;
+        const pendingUserLeaves = await db_1.pool.query(`SELECT COUNT(*) AS count FROM leaves WHERE employee_id = $1 AND status = 'Pending'`, [user.employeeId]);
+        return res.json({
+            adminStats: {
+                totalEmployees,
+                presentToday,
+                activeLeavesToday,
+                pendingLeaveRequests,
+                totalMonthlyPayroll,
+                departmentBreakdown,
+                attendanceTrend,
+            },
+            employeeStats: {
+                employee: currentEmp,
+                todayAttendance: userAttendanceToday,
+                leaveBalance: currentEmp?.leaveBalance || { paidLeave: 0, sickLeave: 0, unpaidLeave: 0 },
+                pendingLeavesCount: parseInt(pendingUserLeaves.rows[0].count),
+            },
         });
     }
-    // Current employee specific summary
-    const currentEmp = data.employees.find((e) => e.employeeId === user.employeeId);
-    const userLeaves = data.leaves.filter((l) => l.employeeId === user.employeeId);
-    const userAttendanceToday = todayAttendance.find((a) => a.employeeId === user.employeeId);
-    return res.json({
-        adminStats: {
-            totalEmployees,
-            presentToday,
-            activeLeavesToday,
-            pendingLeaveRequests,
-            totalMonthlyPayroll,
-            departmentBreakdown,
-            attendanceTrend,
-        },
-        employeeStats: {
-            employee: currentEmp,
-            todayAttendance: userAttendanceToday || null,
-            leaveBalance: currentEmp?.leaveBalance || { paidLeave: 0, sickLeave: 0, unpaidLeave: 0 },
-            pendingLeavesCount: userLeaves.filter((l) => l.status === 'Pending').length,
-        },
-    });
+    catch (err) {
+        console.error('Dashboard stats error:', err);
+        return res.status(500).json({ message: 'Internal server error' });
+    }
 });
 // GET NOTIFICATIONS
-router.get('/notifications', auth_1.authenticateToken, (req, res) => {
+router.get('/notifications', auth_1.authenticateToken, async (req, res) => {
     const user = req.user;
-    const data = database_1.db.getData();
-    const userNotifs = data.notifications.filter((n) => n.userId === 'ALL' || n.userId === user?.employeeId || (user?.role === 'Admin' && n.userId === 'HR-001'));
-    return res.json(userNotifs);
+    try {
+        let result;
+        if (user?.role === 'Admin') {
+            result = await db_1.pool.query(`SELECT * FROM notifications
+         WHERE user_id = 'ALL' OR user_id = $1 OR user_id = 'HR-001'
+         ORDER BY created_at DESC LIMIT 50`, [user.employeeId]);
+        }
+        else {
+            result = await db_1.pool.query(`SELECT * FROM notifications
+         WHERE user_id = 'ALL' OR user_id = $1
+         ORDER BY created_at DESC LIMIT 50`, [user?.employeeId]);
+        }
+        return res.json(result.rows.map(db_1.mapNotification));
+    }
+    catch (err) {
+        console.error('Get notifications error:', err);
+        return res.status(500).json({ message: 'Internal server error' });
+    }
 });
 // MARK NOTIFICATION READ
-router.put('/notifications/:id/read', auth_1.authenticateToken, (req, res) => {
-    const data = database_1.db.getData();
-    const notif = data.notifications.find((n) => n.id === req.params.id);
-    if (notif) {
-        notif.read = true;
-        database_1.db.saveData(data);
+router.put('/notifications/:id/read', auth_1.authenticateToken, async (req, res) => {
+    try {
+        await db_1.pool.query('UPDATE notifications SET read = TRUE WHERE id::text = $1', [req.params.id]);
+        return res.json({ success: true });
     }
-    return res.json({ success: true });
+    catch (err) {
+        console.error('Mark notification read error:', err);
+        return res.status(500).json({ message: 'Internal server error' });
+    }
 });
 exports.default = router;

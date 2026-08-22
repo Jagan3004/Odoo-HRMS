@@ -1,120 +1,125 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
-const database_1 = require("../database");
+const db_1 = require("../db");
 const auth_1 = require("../middleware/auth");
 const router = (0, express_1.Router)();
-const getTodayString = () => new Date().toISOString().split('T')[0];
-const getTimeString = () => new Date().toTimeString().split(' ')[0];
 // CHECK-IN
-router.post('/check-in', auth_1.authenticateToken, (req, res) => {
+router.post('/check-in', auth_1.authenticateToken, async (req, res) => {
     const employeeId = req.user?.employeeId;
     if (!employeeId)
         return res.status(401).json({ message: 'Unauthorized' });
-    const today = getTodayString();
-    const data = database_1.db.getData();
-    let record = data.attendance.find((a) => a.employeeId === employeeId && a.date === today);
-    if (record && record.checkIn) {
-        return res.status(400).json({ message: 'Already checked in for today', record });
+    try {
+        // Check if already checked in today
+        const existing = await db_1.pool.query('SELECT * FROM attendance WHERE employee_id = $1 AND date = CURRENT_DATE', [employeeId]);
+        if (existing.rows.length > 0 && existing.rows[0].check_in) {
+            return res.status(400).json({ message: 'Already checked in for today', record: (0, db_1.mapAttendance)(existing.rows[0]) });
+        }
+        let record;
+        if (existing.rows.length > 0) {
+            // Update existing row
+            const result = await db_1.pool.query(`UPDATE attendance SET check_in = CURRENT_TIME, status = 'Present'
+         WHERE employee_id = $1 AND date = CURRENT_DATE RETURNING *`, [employeeId]);
+            record = result.rows[0];
+        }
+        else {
+            // Insert new
+            const result = await db_1.pool.query(`INSERT INTO attendance (employee_id, date, check_in, status, notes)
+         VALUES ($1, CURRENT_DATE, CURRENT_TIME, 'Present', 'Standard Clock-In') RETURNING *`, [employeeId]);
+            record = result.rows[0];
+        }
+        return res.json({ message: 'Checked in successfully', record: (0, db_1.mapAttendance)(record) });
     }
-    const checkInTime = getTimeString();
-    if (record) {
-        record.checkIn = checkInTime;
-        record.status = 'Present';
+    catch (err) {
+        console.error('Check-in error:', err);
+        return res.status(500).json({ message: 'Internal server error' });
     }
-    else {
-        record = {
-            id: `att-${Date.now()}`,
-            employeeId,
-            date: today,
-            checkIn: checkInTime,
-            status: 'Present',
-            notes: 'Standard Clock-In',
-        };
-        data.attendance.push(record);
-    }
-    database_1.db.saveData(data);
-    return res.json({ message: 'Checked in successfully', record });
 });
 // CHECK-OUT
-router.post('/check-out', auth_1.authenticateToken, (req, res) => {
+router.post('/check-out', auth_1.authenticateToken, async (req, res) => {
     const employeeId = req.user?.employeeId;
     if (!employeeId)
         return res.status(401).json({ message: 'Unauthorized' });
-    const today = getTodayString();
-    const data = database_1.db.getData();
-    const record = data.attendance.find((a) => a.employeeId === employeeId && a.date === today);
-    if (!record || !record.checkIn) {
-        return res.status(400).json({ message: 'You have not checked in today yet' });
+    try {
+        const existing = await db_1.pool.query('SELECT * FROM attendance WHERE employee_id = $1 AND date = CURRENT_DATE', [employeeId]);
+        if (existing.rows.length === 0 || !existing.rows[0].check_in) {
+            return res.status(400).json({ message: 'You have not checked in today yet' });
+        }
+        if (existing.rows[0].check_out) {
+            return res.status(400).json({ message: 'Already checked out for today', record: (0, db_1.mapAttendance)(existing.rows[0]) });
+        }
+        // Calculate hours and update
+        const result = await db_1.pool.query(`UPDATE attendance
+       SET check_out = CURRENT_TIME,
+           total_hours = ROUND(EXTRACT(EPOCH FROM (CURRENT_TIME - check_in)) / 3600.0, 2),
+           status = CASE
+             WHEN EXTRACT(EPOCH FROM (CURRENT_TIME - check_in)) / 3600.0 < 4 THEN 'Half-day'
+             ELSE 'Present'
+           END
+       WHERE employee_id = $1 AND date = CURRENT_DATE RETURNING *`, [employeeId]);
+        return res.json({ message: 'Checked out successfully', record: (0, db_1.mapAttendance)(result.rows[0]) });
     }
-    if (record.checkOut) {
-        return res.status(400).json({ message: 'Already checked out for today', record });
+    catch (err) {
+        console.error('Check-out error:', err);
+        return res.status(500).json({ message: 'Internal server error' });
     }
-    const checkOutTime = getTimeString();
-    record.checkOut = checkOutTime;
-    // Calculate total hours
-    const [inH, inM, inS] = record.checkIn.split(':').map(Number);
-    const [outH, outM, outS] = checkOutTime.split(':').map(Number);
-    const startMinutes = inH * 60 + inM;
-    const endMinutes = outH * 60 + outM;
-    const diffHours = Math.max(0, (endMinutes - startMinutes) / 60);
-    record.totalHours = parseFloat(diffHours.toFixed(2));
-    if (diffHours < 4) {
-        record.status = 'Half-day';
-    }
-    else {
-        record.status = 'Present';
-    }
-    database_1.db.saveData(data);
-    return res.json({ message: 'Checked out successfully', record });
 });
-// GET TODAY STATUS FOR LOGGED IN EMPLOYEE
-router.get('/today', auth_1.authenticateToken, (req, res) => {
-    const employeeId = req.user?.employeeId;
-    const today = getTodayString();
-    const data = database_1.db.getData();
-    const record = data.attendance.find((a) => a.employeeId === employeeId && a.date === today);
-    return res.json({ record: record || null });
+// GET TODAY STATUS
+router.get('/today', auth_1.authenticateToken, async (req, res) => {
+    try {
+        const result = await db_1.pool.query('SELECT * FROM attendance WHERE employee_id = $1 AND date = CURRENT_DATE', [req.user?.employeeId]);
+        return res.json({ record: result.rows.length > 0 ? (0, db_1.mapAttendance)(result.rows[0]) : null });
+    }
+    catch (err) {
+        console.error('Get today attendance error:', err);
+        return res.status(500).json({ message: 'Internal server error' });
+    }
 });
-// GET LOGGED IN EMPLOYEE ATTENDANCE LOG
-router.get('/my', auth_1.authenticateToken, (req, res) => {
-    const employeeId = req.user?.employeeId;
-    const data = database_1.db.getData();
-    const records = data.attendance.filter((a) => a.employeeId === employeeId);
-    return res.json(records);
+// GET MY ATTENDANCE LOG
+router.get('/my', auth_1.authenticateToken, async (req, res) => {
+    try {
+        const result = await db_1.pool.query('SELECT * FROM attendance WHERE employee_id = $1 ORDER BY date DESC', [req.user?.employeeId]);
+        return res.json(result.rows.map(db_1.mapAttendance));
+    }
+    catch (err) {
+        console.error('Get my attendance error:', err);
+        return res.status(500).json({ message: 'Internal server error' });
+    }
 });
-// ADMIN: GET ALL ATTENDANCE RECORDS (with employee names)
-router.get('/all', auth_1.authenticateToken, (0, auth_1.requireRole)('Admin'), (req, res) => {
-    const data = database_1.db.getData();
-    const result = data.attendance.map((att) => {
-        const emp = data.employees.find((e) => e.employeeId === att.employeeId);
-        return {
-            ...att,
-            employeeName: emp ? emp.name : att.employeeId,
-            department: emp ? emp.department : 'General',
-        };
-    });
-    return res.json(result);
+// ADMIN: GET ALL ATTENDANCE WITH EMPLOYEE NAMES
+router.get('/all', auth_1.authenticateToken, (0, auth_1.requireRole)('Admin'), async (req, res) => {
+    try {
+        const result = await db_1.pool.query(`SELECT a.*, e.name AS emp_name, e.department AS emp_department
+       FROM attendance a
+       LEFT JOIN employees e ON e.employee_id = a.employee_id
+       ORDER BY a.date DESC, e.name`);
+        return res.json(result.rows.map(db_1.mapAttendance));
+    }
+    catch (err) {
+        console.error('Get all attendance error:', err);
+        return res.status(500).json({ message: 'Internal server error' });
+    }
 });
 // ADMIN: UPDATE ATTENDANCE RECORD
-router.put('/:id', auth_1.authenticateToken, (0, auth_1.requireRole)('Admin'), (req, res) => {
-    const data = database_1.db.getData();
-    const record = data.attendance.find((a) => a.id === req.params.id);
-    if (!record) {
-        return res.status(404).json({ message: 'Attendance record not found' });
+router.put('/:id', auth_1.authenticateToken, (0, auth_1.requireRole)('Admin'), async (req, res) => {
+    try {
+        const { status, checkIn, checkOut, totalHours, notes } = req.body;
+        const existing = await db_1.pool.query('SELECT * FROM attendance WHERE id::text = $1', [req.params.id]);
+        if (existing.rows.length === 0) {
+            return res.status(404).json({ message: 'Attendance record not found' });
+        }
+        const result = await db_1.pool.query(`UPDATE attendance SET
+        status = COALESCE($1, status),
+        check_in = COALESCE($2::time, check_in),
+        check_out = COALESCE($3::time, check_out),
+        total_hours = COALESCE($4, total_hours),
+        notes = COALESCE($5, notes)
+       WHERE id::text = $6 RETURNING *`, [status, checkIn || null, checkOut || null, totalHours, notes, req.params.id]);
+        return res.json((0, db_1.mapAttendance)(result.rows[0]));
     }
-    const { status, checkIn, checkOut, totalHours, notes } = req.body;
-    if (status)
-        record.status = status;
-    if (checkIn !== undefined)
-        record.checkIn = checkIn;
-    if (checkOut !== undefined)
-        record.checkOut = checkOut;
-    if (totalHours !== undefined)
-        record.totalHours = totalHours;
-    if (notes !== undefined)
-        record.notes = notes;
-    database_1.db.saveData(data);
-    return res.json(record);
+    catch (err) {
+        console.error('Update attendance error:', err);
+        return res.status(500).json({ message: 'Internal server error' });
+    }
 });
 exports.default = router;
