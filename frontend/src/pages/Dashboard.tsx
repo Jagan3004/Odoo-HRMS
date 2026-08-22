@@ -223,17 +223,17 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveTab }) => {
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div>
                 <div className="inline-flex items-center gap-1.5 rounded-full bg-cyan-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-cyan-700">
-                  <HeartPulse className="h-3.5 w-3.5" /> WorkPulse
+                  <HeartPulse className="h-3.5 w-3.5" /> Team overview
                 </div>
-                <h3 className="mt-2 text-base font-bold text-gray-900">Your work health snapshot</h3>
-                <p className="mt-1 text-xs text-gray-500">A quick view of attendance, leave balance, and work rhythm.</p>
+                <h3 className="mt-2 text-base font-bold text-gray-900">Work status summary</h3>
+                <p className="mt-1 text-xs text-gray-500">A quick view of attendance, leave balance, and active work hours.</p>
               </div>
               <div className="flex items-center gap-3 rounded-2xl border border-cyan-100 bg-cyan-50/60 px-4 py-3">
                 <div className="flex h-14 w-14 items-center justify-center rounded-full border border-cyan-200 bg-white">
                   <span className="text-xl font-extrabold text-cyan-700">{employeeWorkPulse?.score ?? 0}</span>
                 </div>
                 <div>
-                  <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-cyan-700">Employee Health Score</p>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-cyan-700">Activity score</p>
                   <p className="text-sm font-semibold text-gray-800">{employeeWorkPulse?.label ?? 'No data'}</p>
                 </div>
               </div>
@@ -300,17 +300,17 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveTab }) => {
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
               <div>
                 <div className="inline-flex items-center gap-1.5 rounded-full bg-violet-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-violet-700">
-                  <ShieldAlert className="h-3.5 w-3.5" /> WorkPulse
+                  <ShieldAlert className="h-3.5 w-3.5" /> Team overview
                 </div>
-                <h3 className="mt-2 text-base font-bold text-gray-900">Employees requiring attention</h3>
-                <p className="mt-1 text-xs text-gray-500">A health-style summary of workforce well-being, not just attendance.</p>
+                <h3 className="mt-2 text-base font-bold text-gray-900">Employees to review</h3>
+                <p className="mt-1 text-xs text-gray-500">A concise summary of attendance, leave load, and current activity.</p>
               </div>
               <div className="flex items-center gap-3 rounded-2xl border border-violet-100 bg-violet-50/60 px-4 py-3">
                 <div className="flex h-14 w-14 items-center justify-center rounded-full border border-violet-200 bg-white">
                   <span className="text-xl font-extrabold text-violet-700">{adminWorkPulse?.score ?? 0}</span>
                 </div>
                 <div>
-                  <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-violet-700">WorkPulse Score</p>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-violet-700">Activity score</p>
                   <p className="text-sm font-semibold text-gray-800">{adminWorkPulse?.label ?? 'No data'}</p>
                 </div>
               </div>
@@ -320,7 +320,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveTab }) => {
               <div className="rounded-xl border border-gray-100 bg-gray-50 p-4">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-gray-400">Present today</p>
                 <p className="mt-2 text-sm font-bold text-gray-900">{adminStats.presentToday} / {adminStats.totalEmployees}</p>
-                <p className="mt-1 text-xs text-gray-500">Current attendance snapshot</p>
+                <p className="mt-1 text-xs text-gray-500">Current attendance summary</p>
               </div>
               <div className="rounded-xl border border-gray-100 bg-gray-50 p-4">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-gray-400">Leave pressure</p>
@@ -330,7 +330,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveTab }) => {
               <div className="rounded-xl border border-gray-100 bg-gray-50 p-4">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-gray-400">Focus area</p>
                 <p className="mt-2 text-sm font-bold text-gray-900">
-                  {adminWorkPulse?.signals[0]?.text || 'Monitoring workforce health'}
+                  {adminWorkPulse?.signals[0]?.text || 'Monitoring current activity'}
                 </p>
                 <p className="mt-1 text-xs text-gray-500">One-line insight for HR action</p>
               </div>

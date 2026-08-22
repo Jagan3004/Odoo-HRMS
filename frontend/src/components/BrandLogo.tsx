@@ -40,8 +40,8 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
 
       {showText && (
         <div className="min-w-0 leading-tight">
-          <div className={`font-extrabold tracking-tight ${styles.title} ${textClassName}`}>Dayflow</div>
-          <div className={`font-semibold uppercase tracking-[0.24em] ${styles.subtitle} ${subtitleClassName}`}>HRMS</div>
+          <div className={`font-extrabold tracking-tight ${styles.title} ${textClassName}`}>PeopleOps</div>
+          <div className={`font-semibold uppercase tracking-[0.24em] ${styles.subtitle} ${subtitleClassName}`}>HR</div>
         </div>
       )}
     </div>

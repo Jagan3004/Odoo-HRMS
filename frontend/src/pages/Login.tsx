@@ -58,11 +58,10 @@ export const Login: React.FC = () => {
           </div>
 
           <h1 className="text-4xl lg:text-5xl font-extrabold leading-tight max-w-lg">
-            Streamline Your<br />HR Operations
+            Manage HR in<br />one place
           </h1>
           <p className="text-white/80 text-base mt-6 max-w-md leading-relaxed">
-            A comprehensive Human Resource Management System for modern organizations. 
-            Manage attendance, leaves, payroll, and employee records — all from one unified platform.
+            A clean Human Resource Management System for teams that need attendance, leaves, payroll, and employee records in one place.
           </p>
         </div>
 

@@ -48,8 +48,8 @@ export const Leaves: React.FC = () => {
       </div>
 
       <PageInsights
-        eyebrow="Leave insights"
-        title="Time-off at a glance"
+        eyebrow="Leave overview"
+        title="Time-off summary"
         description="Track balances, pending requests, and the current approval load without digging into the tables."
         icon={CalendarDays}
         cards={user?.role === 'Admin' ? [

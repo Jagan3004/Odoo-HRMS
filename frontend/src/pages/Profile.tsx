@@ -119,7 +119,7 @@ export const Profile: React.FC = () => {
             <p className="text-[10px] font-extrabold uppercase tracking-[0.22em] text-cyan-700">People / My workspace</p>
             <h1 className="mt-1 text-3xl font-black tracking-tight text-slate-950 sm:text-[38px]">My profile</h1>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500 sm:text-[15px]">
-              Keep your employee details current and easy for your HR team to trust.
+              Keep your employee details current and easy for your HR team to use.
             </p>
           </div>
         </div>
@@ -144,8 +144,8 @@ export const Profile: React.FC = () => {
       {(message || error) && <div className={`rounded-xl border px-4 py-3 text-sm font-medium ${error ? 'border-rose-200 bg-rose-50 text-rose-700' : 'border-emerald-200 bg-emerald-50 text-emerald-700'}`}>{error || message}</div>}
 
       <PageInsights
-        eyebrow="Profile insights"
-        title="Your workspace readiness"
+        eyebrow="Profile overview"
+        title="Workspace summary"
         description="A quick check on profile completeness, contact coverage, and document readiness."
         icon={UserRound}
         cards={[
@@ -223,7 +223,7 @@ export const Profile: React.FC = () => {
           <div className="grid gap-4 px-5 py-6 sm:grid-cols-2 sm:px-6">{employee.documents.length ? employee.documents.map((document) => <div key={document.id} className="flex items-center gap-3 rounded-xl border border-slate-100 bg-slate-50 px-4 py-3"><FileText className="h-5 w-5 text-cyan-700" /><a href={document.url} target="_blank" rel="noreferrer" className="min-w-0 flex-1"><span className="block truncate text-sm font-bold text-slate-800">{document.name}</span><span className="text-[11px] text-slate-400">{document.type} / {formatDate(document.uploadDate)}</span></a><button type="button" onClick={() => deleteDocument(document.id)} className="rounded-lg p-2 text-slate-400 hover:bg-rose-50 hover:text-rose-600"><Trash2 className="h-4 w-4" /></button></div>) : <p className="text-sm text-slate-500">No documents uploaded yet.</p>}<label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-cyan-200 bg-cyan-50/50 px-4 py-3 text-xs font-bold text-cyan-800 hover:bg-cyan-50"><Upload className="h-4 w-4" /> Upload document<input type="file" className="hidden" disabled={uploading} onChange={(event) => event.target.files?.[0] && uploadDocument(event.target.files[0])} /></label><div className="grid gap-4 sm:col-span-2 sm:grid-cols-2"><div className="flex items-center gap-3 text-sm text-slate-600"><Mail className="h-4 w-4 text-slate-400" /> {employee.email}</div><div className="flex items-center gap-3 text-sm text-slate-600"><Phone className="h-4 w-4 text-slate-400" /> {employee.phone || 'No phone number'}</div><div className="flex items-center gap-3 text-sm text-slate-600"><MapPin className="h-4 w-4 text-slate-400" /> {employee.address || 'No address'}</div><div className="flex items-center gap-3 text-sm text-slate-600"><CalendarDays className="h-4 w-4 text-slate-400" /> Joined {formatDate(employee.joiningDate)}</div></div></div>
         </SectionCard>
 
-        <SectionCard title="Account security" description="Change your password without leaving Dayflow."><form onSubmit={changePassword} className="grid gap-4 px-5 py-6 sm:grid-cols-3 sm:px-6"><input required type="password" placeholder="Current password" value={passwords.currentPassword} onChange={(event) => setPasswords({ ...passwords, currentPassword: event.target.value })} className="input-field" /><input required minLength={8} type="password" placeholder="New password" value={passwords.newPassword} onChange={(event) => setPasswords({ ...passwords, newPassword: event.target.value })} className="input-field" /><button type="submit" className="primary-button"><KeyRound className="h-3.5 w-3.5" /> Update password</button>{passwordMessage && <p className="text-xs font-semibold text-emerald-700 sm:col-span-3">{passwordMessage}</p>}</form></SectionCard>
+        <SectionCard title="Account security" description="Change your password without leaving the app."><form onSubmit={changePassword} className="grid gap-4 px-5 py-6 sm:grid-cols-3 sm:px-6"><input required type="password" placeholder="Current password" value={passwords.currentPassword} onChange={(event) => setPasswords({ ...passwords, currentPassword: event.target.value })} className="input-field" /><input required minLength={8} type="password" placeholder="New password" value={passwords.newPassword} onChange={(event) => setPasswords({ ...passwords, newPassword: event.target.value })} className="input-field" /><button type="submit" className="primary-button"><KeyRound className="h-3.5 w-3.5" /> Update password</button>{passwordMessage && <p className="text-xs font-semibold text-emerald-700 sm:col-span-3">{passwordMessage}</p>}</form></SectionCard>
 
         {isEditing && <div className="flex justify-end"><button type="button" onClick={() => saveProfile({ preventDefault: () => {} } as React.FormEvent)} disabled={saving} className="inline-flex items-center gap-2 rounded-xl bg-cyan-700 px-5 py-3 text-xs font-bold text-white transition hover:bg-cyan-800 disabled:cursor-not-allowed disabled:opacity-60">{saving ? 'Saving...' : <><Save className="h-4 w-4" /> Save changes</>}</button></div>}
       </div>

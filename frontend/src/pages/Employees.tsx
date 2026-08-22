@@ -58,9 +58,9 @@ export const Employees: React.FC<EmployeesProps> = () => {
       </div>
 
       <PageInsights
-        eyebrow="Directory insights"
-        title="Quick employee snapshot"
-        description="A fast summary of your workforce composition and the currently visible team slice."
+        eyebrow="Directory overview"
+        title="Employee summary"
+        description="A quick view of workforce composition and the currently filtered results."
         icon={Users}
         cards={[
           { label: 'Total employees', value: String(employees.length), note: 'Full workforce in the directory', icon: Users, tone: 'indigo' },

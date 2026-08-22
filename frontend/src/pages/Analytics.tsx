@@ -38,12 +38,12 @@ export const Analytics: React.FC = () => {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2"><BarChart3 className="w-6 h-6 text-indigo-600" /> HR Analytics</h1>
-        <p className="text-sm text-gray-500 mt-1">Data-driven insights for workforce planning and optimization.</p>
+        <p className="text-sm text-gray-500 mt-1">Workforce planning and operational reporting in one place.</p>
       </div>
 
       <PageInsights
-        eyebrow="Analytics insights"
-        title="Workforce performance overview"
+        eyebrow="Analytics overview"
+        title="Workforce performance summary"
         description="Use these summary indicators to spot trends before you drill into the charts below."
         icon={BarChart3}
         cards={[

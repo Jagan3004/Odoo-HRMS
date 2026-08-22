@@ -19,7 +19,7 @@ const AppContent: React.FC = () => {
     return (
       <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center space-y-3">
         <div className="animate-spin rounded-full h-8 w-8 border-2 border-indigo-200 border-t-indigo-600" />
-        <p className="text-xs text-gray-400 font-medium">Loading Dayflow HRMS...</p>
+        <p className="text-xs text-gray-400 font-medium">Loading PeopleOps...</p>
       </div>
     );
   }

@@ -83,8 +83,8 @@ export const Attendance: React.FC = () => {
       </div>
 
       <PageInsights
-        eyebrow="Attendance insights"
-        title="Live attendance snapshot"
+        eyebrow="Attendance overview"
+        title="Live attendance summary"
         description="See the current clock status, weekly activity, and the most relevant attendance signals at a glance."
         icon={Clock}
         cards={attendanceInsights}
