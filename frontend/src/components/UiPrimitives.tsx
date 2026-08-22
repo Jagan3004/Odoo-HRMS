@@ -21,9 +21,15 @@ export const StatusBadge: React.FC<{ label: string; tone?: BadgeTone; className?
 export const Avatar: React.FC<{ name: string; src?: string; size?: 'sm' | 'md' | 'lg'; className?: string }> = ({ name, src, size = 'md', className = '' }) => {
   const sizeClasses = { sm: 'h-9 w-9 text-xs', md: 'h-11 w-11 text-sm', lg: 'h-16 w-16 text-xl' };
   const initials = name.split(' ').filter(Boolean).map((part) => part[0]).join('').slice(0, 2).toUpperCase() || 'U';
+  const [loadFailed, setLoadFailed] = React.useState(false);
 
-  return src ? (
-    <img src={src} alt={name} className={`${sizeClasses[size]} rounded-2xl object-cover ring-2 ring-white shadow-sm ${className}`} />
+  return src && !loadFailed ? (
+    <img
+      src={src}
+      alt={name}
+      onError={() => setLoadFailed(true)}
+      className={`${sizeClasses[size]} rounded-2xl object-cover ring-2 ring-white shadow-sm ${className}`}
+    />
   ) : (
     <div className={`${sizeClasses[size]} flex shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-500 to-blue-700 font-extrabold text-white shadow-sm ${className}`}>
       {initials}

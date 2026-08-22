@@ -3,7 +3,8 @@ import { BriefcaseBusiness, CalendarDays, FileText, KeyRound, Mail, MapPin, Penc
 import { apiRequest } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { Employee } from '../types';
-import { Avatar, PageHeader, SectionCard, StatusBadge } from '../components/UiPrimitives';
+import { Avatar, SectionCard, StatusBadge } from '../components/UiPrimitives';
+import { PageInsights } from '../components/PageInsights';
 
 interface ProfileForm {
   name: string;
@@ -51,6 +52,16 @@ export const Profile: React.FC = () => {
 
   const isAdmin = user?.role === 'Admin';
   const updateField = (field: keyof ProfileForm, value: string) => setForm((current) => ({ ...current, [field]: value }));
+  const profileCompleteness = [
+    employee.email,
+    employee.phone,
+    employee.address,
+    employee.emergencyContact,
+    employee.managerName,
+    employee.avatarUrl,
+    employee.documents.length > 0 ? 'docs' : '',
+  ].filter(Boolean).length;
+  const profileScore = Math.min(100, Math.round((profileCompleteness / 7) * 100));
 
   const saveProfile = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -99,32 +110,103 @@ export const Profile: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        eyebrow="People / My workspace"
-        title="My profile"
-        description="Keep your employee details current and easy for your HR team to trust."
-        icon={UserRound}
-        actions={isEditing ? (
-          <button onClick={() => { setIsEditing(false); setError(null); }} className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-bold text-slate-600 transition hover:bg-slate-50">Cancel</button>
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div className="flex items-start gap-3 sm:gap-4">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-cyan-100 bg-cyan-50 text-cyan-700 shadow-sm">
+            <UserRound className="h-6 w-6" />
+          </div>
+          <div>
+            <p className="text-[10px] font-extrabold uppercase tracking-[0.22em] text-cyan-700">People / My workspace</p>
+            <h1 className="mt-1 text-3xl font-black tracking-tight text-slate-950 sm:text-[38px]">My profile</h1>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500 sm:text-[15px]">
+              Keep your employee details current and easy for your HR team to trust.
+            </p>
+          </div>
+        </div>
+
+        {isEditing ? (
+          <button
+            onClick={() => { setIsEditing(false); setError(null); }}
+            className="inline-flex items-center gap-2 self-start rounded-full bg-slate-950 px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-slate-800"
+          >
+            Cancel
+          </button>
         ) : (
-          <button onClick={() => { setIsEditing(true); setMessage(null); }} className="inline-flex items-center gap-2 rounded-xl bg-slate-950 px-4 py-2.5 text-xs font-bold text-white transition hover:bg-cyan-700"><Pencil className="h-3.5 w-3.5" /> Edit profile</button>
+          <button
+            onClick={() => { setIsEditing(true); setMessage(null); }}
+            className="inline-flex items-center gap-2 self-start rounded-full bg-slate-950 px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-cyan-700"
+          >
+            <Pencil className="h-4 w-4" /> Edit profile
+          </button>
         )}
-      />
+      </div>
 
       {(message || error) && <div className={`rounded-xl border px-4 py-3 text-sm font-medium ${error ? 'border-rose-200 bg-rose-50 text-rose-700' : 'border-emerald-200 bg-emerald-50 text-emerald-700'}`}>{error || message}</div>}
 
+      <PageInsights
+        eyebrow="Profile insights"
+        title="Your workspace readiness"
+        description="A quick check on profile completeness, contact coverage, and document readiness."
+        icon={UserRound}
+        cards={[
+          { label: 'Profile completeness', value: `${profileScore}%`, note: 'Based on contact, avatar, and document coverage', icon: UserRound, tone: 'indigo' },
+          { label: 'Uploaded documents', value: String(employee.documents.length), note: 'HR records stored on your profile', icon: FileText, tone: 'cyan' },
+          { label: 'Emergency contact', value: employee.emergencyContact ? 'Set' : 'Missing', note: employee.emergencyContact ? 'An alternate contact is available' : 'Add one for safety', icon: Phone, tone: employee.emergencyContact ? 'emerald' : 'amber' },
+          { label: 'Account status', value: 'Active', note: 'Your profile is live in the system', icon: ShieldCheck, tone: 'violet' },
+        ]}
+      />
+
       <div className="space-y-6">
         <SectionCard className="overflow-hidden">
-          <div className="flex flex-col gap-5 bg-gradient-to-r from-cyan-50 via-white to-blue-50 px-5 py-6 sm:flex-row sm:items-center sm:px-6">
-            <div className="relative"><Avatar name={employee.name} src={employee.avatarUrl} size="lg" /><label className="absolute -bottom-1 -right-1 cursor-pointer rounded-lg bg-slate-950 p-2 text-white shadow hover:bg-cyan-700"><Upload className="h-3.5 w-3.5" /><input type="file" accept="image/*" className="hidden" disabled={uploading} onChange={(event) => event.target.files?.[0] && uploadAvatar(event.target.files[0])} /></label></div>
-            <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-center gap-2"><h2 className="text-xl font-extrabold text-slate-950">{employee.name}</h2><StatusBadge label={employee.role} tone={isAdmin ? 'warning' : 'brand'} /></div>
-              <p className="mt-1 text-sm text-slate-500">{employee.designation} <span className="px-1 text-slate-300">/</span> {employee.department}</p>
-              <p className="mt-2 text-xs font-semibold text-slate-400">Employee ID: {employee.employeeId}</p>
+          <div className="overflow-hidden rounded-2xl border border-cyan-100">
+            <div className="bg-gradient-to-r from-cyan-50 via-white to-blue-50 px-5 py-6 sm:px-6 sm:py-8">
+              <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+                <div className="flex min-w-0 items-center gap-4">
+                  <div className="relative">
+                    <Avatar name={employee.name} src={employee.avatarUrl} size="lg" />
+                    <label className="absolute -bottom-2 -right-2 flex h-9 w-9 cursor-pointer items-center justify-center rounded-xl bg-slate-950 text-white shadow-lg transition hover:bg-cyan-700">
+                      <Upload className="h-4 w-4" />
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        disabled={uploading}
+                        onChange={(event) => event.target.files?.[0] && uploadAvatar(event.target.files[0])}
+                      />
+                    </label>
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-3">
+                      <h2 className="truncate text-2xl font-black tracking-tight text-slate-950 sm:text-[30px]">{employee.name}</h2>
+                      <StatusBadge label={employee.role} tone={isAdmin ? 'warning' : 'brand'} />
+                    </div>
+                    <p className="mt-2 text-sm text-slate-500 sm:text-[15px]">
+                      {employee.designation} <span className="px-2 text-slate-300">/</span> {employee.department}
+                    </p>
+                    <p className="mt-3 text-sm font-semibold text-slate-400">Employee ID: {employee.employeeId}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 self-start rounded-full border border-emerald-100 bg-white/80 px-4 py-2 text-sm font-bold text-emerald-700 shadow-sm">
+                  <ShieldCheck className="h-4 w-4" />
+                  Active account
+                </div>
+              </div>
             </div>
-            <div className="flex items-center gap-2 text-xs font-semibold text-emerald-700"><ShieldCheck className="h-4 w-4" /> Active account</div>
+
+            <div className="grid gap-6 px-5 py-6 sm:grid-cols-2 sm:px-6">
+              <div className="space-y-5">
+                {field('Email address', employee.email, 'name', false)}
+                {field('Phone number', form.phone, 'phone')}
+                {field('Address', form.address, 'address')}
+              </div>
+              <div className="space-y-5">
+                {field('Joining date', formatDate(employee.joiningDate), 'name', false)}
+                {field('Emergency contact', form.emergencyContact, 'emergencyContact')}
+                {field('Manager', form.managerName, 'managerName')}
+              </div>
+            </div>
           </div>
-          <div className="grid gap-5 px-5 py-6 sm:grid-cols-2 sm:px-6">{field('Email address', employee.email, 'name', false)}{field('Joining date', formatDate(employee.joiningDate), 'name', false)}{field('Phone number', form.phone, 'phone')}{field('Emergency contact', form.emergencyContact, 'emergencyContact')}{field('Address', form.address, 'address')}</div>
         </SectionCard>
 
         <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">

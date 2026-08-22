@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { apiRequest } from '../api/client';
 import { LeaveRequest, LeaveType } from '../types';
 import { CalendarDays, PlusCircle, Clock, CheckCircle2, AlertCircle, X } from 'lucide-react';
+import { PageInsights } from '../components/PageInsights';
 
 export const Leaves: React.FC = () => {
   const { user } = useAuth();
@@ -32,6 +33,10 @@ export const Leaves: React.FC = () => {
     return <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold border ${m[s] || 'bg-gray-50 text-gray-500 border-gray-200'}`}>{s}</span>;
   };
 
+  const myPending = myLeaves.filter((leave) => leave.status === 'Pending').length;
+  const myApproved = myLeaves.filter((leave) => leave.status === 'Approved').length;
+  const adminPending = allLeaves.filter((leave) => leave.status === 'Pending').length;
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -41,6 +46,24 @@ export const Leaves: React.FC = () => {
         </div>
         <button onClick={() => setShowApplyModal(true)} className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs rounded-lg shadow-sm flex items-center space-x-2 transition-all"><PlusCircle className="w-4 h-4" /><span>Apply for Leave</span></button>
       </div>
+
+      <PageInsights
+        eyebrow="Leave insights"
+        title="Time-off at a glance"
+        description="Track balances, pending requests, and the current approval load without digging into the tables."
+        icon={CalendarDays}
+        cards={user?.role === 'Admin' ? [
+          { label: 'Total requests', value: String(allLeaves.length), note: 'Requests currently in the HR queue', icon: CalendarDays, tone: 'indigo' },
+          { label: 'Pending approvals', value: String(adminPending), note: 'Needs review from the HR team', icon: AlertCircle, tone: 'amber' },
+          { label: 'Reviewed requests', value: String(allLeaves.length - adminPending), note: 'Already processed by HR', icon: CheckCircle2, tone: 'emerald' },
+          { label: 'Available balance', value: `${leaveBalance.paidLeave + leaveBalance.sickLeave}d`, note: 'Combined paid and sick leave', icon: Clock, tone: 'cyan' },
+        ] : [
+          { label: 'Leave balance', value: `${leaveBalance.paidLeave + leaveBalance.sickLeave}d`, note: 'Paid and sick leave available', icon: CheckCircle2, tone: 'indigo' },
+          { label: 'Pending requests', value: String(myPending), note: 'Waiting for HR approval', icon: AlertCircle, tone: 'amber' },
+          { label: 'Approved requests', value: String(myApproved), note: 'Completed leave applications', icon: CalendarDays, tone: 'emerald' },
+          { label: 'Total requests', value: String(myLeaves.length), note: 'Full leave history on record', icon: Clock, tone: 'cyan' },
+        ]}
+      />
 
       {/* Balances */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

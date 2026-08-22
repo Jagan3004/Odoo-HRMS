@@ -5,6 +5,7 @@ import { apiRequest } from '../api/client';
 import { Payslip, SalaryStructure } from '../types';
 import { Download, Eye, FilePlus2, ReceiptText, Save, Search, WalletCards, X } from 'lucide-react';
 import { EmptyState, LoadingState, PageHeader, SectionCard, StatusBadge } from '../components/UiPrimitives';
+import { PageInsights } from '../components/PageInsights';
 
 interface PayrollOverviewItem {
   employeeId: string; id: string; name: string; department: string; designation: string; salaryStructure: SalaryStructure; latestPayslip: Payslip | null; totalPayslips: number;
@@ -83,6 +84,21 @@ export const Payroll: React.FC = () => {
     try { await apiRequest(`/payroll/salary-structure/${editing.id}`, 'PUT', salaryForm); setEditing(null); setMessage({ tone: 'success', text: `Salary structure saved for ${editing.name}.` }); await fetchData(); } catch (error: any) { setMessage({ tone: 'error', text: error.message || 'Unable to save salary changes.' }); } finally { setSaving(false); }
   };
   const visibleOverview = useMemo(() => overview.filter((item) => !query || [item.name, item.employeeId, item.department, item.designation].some((value) => value.toLowerCase().includes(query.toLowerCase()))), [overview, query]);
+  const payrollInsights = user?.role === 'Admin'
+    ? [
+        { label: 'Salary profiles', value: String(overview.length), note: 'Employees with active salary structures', icon: WalletCards, tone: 'indigo' as const },
+        { label: 'Generated payslips', value: String(overview.filter((item) => item.latestPayslip).length), note: 'Employees who already have statements', icon: ReceiptText, tone: 'emerald' as const },
+        { label: 'Drafted payouts', value: String(overview.filter((item) => !item.latestPayslip).length), note: 'Still waiting for generation', icon: FilePlus2, tone: 'amber' as const },
+        { label: 'Monthly payroll', value: `₹${money.format(overview.reduce((sum, item) => sum + item.salaryStructure.netSalary, 0))}`, note: 'Current net salary liability', icon: Download, tone: 'cyan' as const },
+      ]
+    : mySalary
+      ? [
+          { label: 'Net pay', value: `₹${money.format(mySalary.netSalary)}`, note: 'Expected monthly take-home pay', icon: WalletCards, tone: 'emerald' as const },
+          { label: 'Gross earnings', value: `₹${money.format(mySalary.grossSalary)}`, note: 'Before deductions and taxes', icon: ReceiptText, tone: 'indigo' as const },
+          { label: 'Deductions', value: `₹${money.format(totalDeductions(mySalary))}`, note: 'PF and tax deductions', icon: X, tone: 'rose' as const },
+          { label: 'Payslips issued', value: String(myPayslips.length), note: 'Historical pay statements available', icon: FilePlus2, tone: 'cyan' as const },
+        ]
+      : [];
   const exportOverview = () => {
     const rows = [['Employee ID', 'Employee', 'Department', 'Basic', 'Gross', 'Deductions', 'Net'], ...overview.map((item) => [item.employeeId, item.name, item.department, item.salaryStructure.basic, item.salaryStructure.grossSalary, totalDeductions(item.salaryStructure), item.salaryStructure.netSalary])];
     const csv = rows.map((row) => row.map((value) => `"${String(value).replaceAll('"', '""')}"`).join(',')).join('\n'); const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' })); const link = document.createElement('a'); link.href = url; link.download = `dayflow-payroll-${generateMonth}.csv`; link.click(); URL.revokeObjectURL(url);
@@ -94,6 +110,15 @@ export const Payroll: React.FC = () => {
   return (
     <div className="space-y-7">
       <PageHeader eyebrow="Payroll & payslips" title="Clear, reliable compensation" description={user?.role === 'Admin' ? 'Maintain salary structures and issue consistent monthly pay statements for every employee.' : 'Review your monthly salary structure and download your official pay statements.'} icon={WalletCards} actions={user?.role === 'Admin' ? <><button onClick={exportOverview} className="secondary-button"><Download className="h-3.5 w-3.5" />Export payroll</button><div className="flex rounded-xl border border-slate-200 bg-white p-1 shadow-sm"><input type="month" className="w-34 border-0 bg-transparent px-2 text-xs font-semibold text-slate-600 outline-none" value={generateMonth} onChange={(event) => setGenerateMonth(event.target.value)} /><button onClick={generatePayslips} disabled={generating} className="primary-button px-3 py-2">{generating ? 'Generating…' : <><FilePlus2 className="h-3.5 w-3.5" />Generate</>}</button></div></> : undefined} />
+      {!!payrollInsights.length && (
+        <PageInsights
+          eyebrow="Payroll insights"
+          title="Compensation snapshot"
+          description="A concise view of pay structures, issued statements, and current monthly totals."
+          icon={WalletCards}
+          cards={payrollInsights}
+        />
+      )}
       {message && <div className={`rounded-xl border px-4 py-3 text-xs font-semibold ${message.tone === 'success' ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-rose-200 bg-rose-50 text-rose-700'}`}>{message.text}</div>}
       {mySalary && <section className="surface-card overflow-hidden"><div className="flex flex-col justify-between gap-3 border-b border-slate-100 bg-gradient-to-r from-cyan-50/70 to-blue-50/60 px-5 py-4 sm:flex-row sm:items-center sm:px-6"><div><h2 className="text-sm font-extrabold text-slate-900">My monthly compensation</h2><p className="mt-1 text-xs text-slate-500">Your current salary structure. Payroll changes are managed by HR.</p></div><StatusBadge label="Read only" tone="neutral" /></div><div className="grid gap-3 p-4 sm:grid-cols-2 xl:grid-cols-4">{currentSalaryItems.map(({ label, value, note, color }) => <div key={label} className={`rounded-2xl border p-4 ${color}`}><p className="text-xs font-bold opacity-80">{label}</p><p className="mt-2 font-mono text-xl font-extrabold">₹{money.format(value)}</p><p className="mt-2 text-[10px] opacity-75">{note}</p></div>)}</div></section>}
 

@@ -4,6 +4,7 @@ import { apiRequest } from '../api/client';
 import { AdminStats } from '../types';
 import { BarChart3, Users, Clock, CalendarDays, DollarSign } from 'lucide-react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, PieChart, Pie, Cell, LineChart, Line, CartesianGrid } from 'recharts';
+import { PageInsights } from '../components/PageInsights';
 
 const COLORS = ['#4f46e5', '#7c3aed', '#ec4899', '#3b82f6', '#10b981', '#f59e0b'];
 
@@ -29,6 +30,7 @@ export const Analytics: React.FC = () => {
 
   const payrollByDept = stats.payrollByDepartment || [];
   const monthlyTrend = [{ month: 'Jan', cost: 38000 }, { month: 'Feb', cost: 39200 }, { month: 'Mar', cost: 40500 }, { month: 'Apr', cost: 41000 }, { month: 'May', cost: 42500 }, { month: 'Jun', cost: stats.totalMonthlyPayroll }];
+  const attendanceRate = stats.totalEmployees > 0 ? `${Math.round((stats.presentToday / stats.totalEmployees) * 100)}%` : '0%';
 
   const tooltipStyle = { background: '#fff', border: '1px solid #e5e7eb', borderRadius: '8px', fontSize: '12px', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.05)' };
 
@@ -38,6 +40,19 @@ export const Analytics: React.FC = () => {
         <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2"><BarChart3 className="w-6 h-6 text-indigo-600" /> HR Analytics</h1>
         <p className="text-sm text-gray-500 mt-1">Data-driven insights for workforce planning and optimization.</p>
       </div>
+
+      <PageInsights
+        eyebrow="Analytics insights"
+        title="Workforce performance overview"
+        description="Use these summary indicators to spot trends before you drill into the charts below."
+        icon={BarChart3}
+        cards={[
+          { label: 'Headcount', value: String(stats.totalEmployees), note: 'Employees captured in the system', icon: Users, tone: 'indigo' },
+          { label: 'Attendance rate', value: attendanceRate, note: 'Current day present vs total employees', icon: Clock, tone: 'emerald' },
+          { label: 'Leave queue', value: String(stats.pendingLeaveRequests), note: 'Pending requests awaiting review', icon: CalendarDays, tone: 'amber' },
+          { label: 'Monthly payroll', value: `₹${(stats.totalMonthlyPayroll / 1000).toFixed(1)}K`, note: 'Net salary liability this month', icon: DollarSign, tone: 'violet' },
+        ]}
+      />
 
       {/* Summary KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

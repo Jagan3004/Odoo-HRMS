@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { apiRequest } from '../api/client';
 import { Employee, Role } from '../types';
 import { Users, Search, UserPlus, Mail, Phone, Building, Briefcase, Calendar, X, Trash2, Shield } from 'lucide-react';
+import { PageInsights } from '../components/PageInsights';
 
 interface EmployeesProps { onSelectEmployee?: (emp: Employee) => void; setActiveTab?: (tab: string) => void; }
 
@@ -34,6 +35,7 @@ export const Employees: React.FC<EmployeesProps> = () => {
   };
 
   const departments = ['All', ...Array.from(new Set(employees.map((e) => e.department)))];
+  const adminCount = employees.filter((emp) => emp.role === 'Admin').length;
   const filtered = employees.filter((emp) => {
     const q = searchQuery.toLowerCase();
     const matchSearch = emp.name.toLowerCase().includes(q) || emp.email.toLowerCase().includes(q) || emp.employeeId.toLowerCase().includes(q) || emp.designation.toLowerCase().includes(q);
@@ -54,6 +56,19 @@ export const Employees: React.FC<EmployeesProps> = () => {
           </button>
         )}
       </div>
+
+      <PageInsights
+        eyebrow="Directory insights"
+        title="Quick employee snapshot"
+        description="A fast summary of your workforce composition and the currently visible team slice."
+        icon={Users}
+        cards={[
+          { label: 'Total employees', value: String(employees.length), note: 'Full workforce in the directory', icon: Users, tone: 'indigo' },
+          { label: 'Departments', value: String(departments.filter((dept) => dept !== 'All').length), note: 'Organizational groups represented', icon: Building, tone: 'cyan' },
+          { label: 'Admins', value: String(adminCount), note: 'Users with HR privileges', icon: Shield, tone: 'amber' },
+          { label: 'Visible results', value: String(filtered.length), note: 'Matches from the current filters', icon: Search, tone: 'emerald' },
+        ]}
+      />
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row items-center gap-3">

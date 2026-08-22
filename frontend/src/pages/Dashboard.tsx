@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { apiRequest } from '../api/client';
 import { AdminStats, EmployeeStats } from '../types';
-import { Users, Clock, CalendarDays, DollarSign, TrendingUp, AlertCircle, CheckCircle2, Play, Square, ArrowRight } from 'lucide-react';
+import { Users, Clock, CalendarDays, DollarSign, TrendingUp, AlertCircle, CheckCircle2, Play, Square, ArrowRight, Activity, Sparkles, ShieldAlert, HeartPulse } from 'lucide-react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, PieChart, Pie, Cell } from 'recharts';
 
 const COLORS = ['#4f46e5', '#7c3aed', '#ec4899', '#3b82f6', '#10b981'];
@@ -45,6 +45,90 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveTab }) => {
   const todayAtt = employeeStats?.todayAttendance;
   const isCheckedIn = !!todayAtt?.checkIn && !todayAtt?.checkOut;
   const isCheckedOut = !!todayAtt?.checkOut;
+
+  const clampScore = (value: number) => Math.max(0, Math.min(100, Math.round(value)));
+
+  const employeeWorkPulse = (() => {
+    if (!employeeStats) return null;
+
+    let score = 72;
+    const signals: { tone: 'warning' | 'success' | 'info'; text: string }[] = [];
+
+    if (todayAtt?.checkIn) {
+      score += 10;
+      signals.push({ tone: 'success', text: 'Checked in and active today' });
+    } else {
+      score -= 18;
+      signals.push({ tone: 'warning', text: 'No check-in detected yet' });
+    }
+
+    if (todayAtt?.totalHours != null) {
+      if (todayAtt.totalHours >= 8) {
+        score += 8;
+        signals.push({ tone: 'success', text: 'Healthy working hours logged' });
+      } else if (todayAtt.totalHours >= 6) {
+        score += 2;
+        signals.push({ tone: 'info', text: 'Moderate working hours recorded' });
+      } else {
+        score -= 12;
+        signals.push({ tone: 'warning', text: 'Working hours are below target' });
+      }
+    }
+
+    const leavePressure = employeeStats.pendingLeavesCount * 5;
+    if (employeeStats.pendingLeavesCount > 0) {
+      score -= leavePressure;
+      signals.push({ tone: 'warning', text: `${employeeStats.pendingLeavesCount} pending leave request${employeeStats.pendingLeavesCount > 1 ? 's' : ''}` });
+    }
+
+    const lowBalance = [employeeStats.leaveBalance.paidLeave, employeeStats.leaveBalance.sickLeave].filter((days) => days <= 2).length;
+    if (lowBalance > 0) {
+      score -= lowBalance * 4;
+      signals.push({ tone: 'info', text: 'Leave balance is getting tight' });
+    }
+
+    const finalScore = clampScore(score);
+    const label = finalScore >= 80 ? 'Thriving' : finalScore >= 60 ? 'Stable' : 'Needs attention';
+
+    return {
+      score: finalScore,
+      label,
+      signals: signals.slice(0, 3),
+    };
+  })();
+
+  const adminWorkPulse = (() => {
+    if (!adminStats) return null;
+
+    const attendanceRate = adminStats.totalEmployees > 0 ? adminStats.presentToday / adminStats.totalEmployees : 0;
+    let score = attendanceRate * 60 + Math.max(0, 25 - adminStats.pendingLeaveRequests * 2.5) + Math.max(0, 15 - adminStats.activeLeavesToday * 2);
+    const signals: { tone: 'warning' | 'success' | 'info'; text: string }[] = [];
+
+    if (attendanceRate >= 0.85) {
+      signals.push({ tone: 'success', text: 'Attendance rate is strong today' });
+    } else if (attendanceRate >= 0.7) {
+      signals.push({ tone: 'info', text: 'Attendance rate is steady' });
+    } else {
+      signals.push({ tone: 'warning', text: 'Attendance needs attention' });
+    }
+
+    if (adminStats.pendingLeaveRequests > 0) {
+      signals.push({ tone: 'warning', text: `${adminStats.pendingLeaveRequests} leave request${adminStats.pendingLeaveRequests > 1 ? 's' : ''} awaiting review` });
+    }
+
+    if (adminStats.activeLeavesToday > 0) {
+      signals.push({ tone: 'info', text: `${adminStats.activeLeavesToday} active leave${adminStats.activeLeavesToday > 1 ? 's' : ''} today` });
+    }
+
+    const finalScore = clampScore(score);
+    const label = finalScore >= 80 ? 'Organizationally healthy' : finalScore >= 60 ? 'Balanced' : 'At risk';
+
+    return {
+      score: finalScore,
+      label,
+      signals: signals.slice(0, 3),
+    };
+  })();
 
   return (
     <div className="space-y-6">
@@ -134,34 +218,126 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveTab }) => {
 
       {/* Employee Personal Cards */}
       {user?.role === 'Employee' && employeeStats && (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="stat-card p-5 rounded-xl flex items-center justify-between">
-            <div>
-              <p className="text-xs text-gray-500 font-medium">Paid Leave</p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">{employeeStats.leaveBalance.paidLeave} <span className="text-xs font-normal text-gray-400">days</span></p>
+        <div className="space-y-4">
+          <div className="panel-elevated rounded-xl p-5 sm:p-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div>
+                <div className="inline-flex items-center gap-1.5 rounded-full bg-cyan-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-cyan-700">
+                  <HeartPulse className="h-3.5 w-3.5" /> WorkPulse
+                </div>
+                <h3 className="mt-2 text-base font-bold text-gray-900">Your work health snapshot</h3>
+                <p className="mt-1 text-xs text-gray-500">A quick view of attendance, leave balance, and work rhythm.</p>
+              </div>
+              <div className="flex items-center gap-3 rounded-2xl border border-cyan-100 bg-cyan-50/60 px-4 py-3">
+                <div className="flex h-14 w-14 items-center justify-center rounded-full border border-cyan-200 bg-white">
+                  <span className="text-xl font-extrabold text-cyan-700">{employeeWorkPulse?.score ?? 0}</span>
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-cyan-700">Employee Health Score</p>
+                  <p className="text-sm font-semibold text-gray-800">{employeeWorkPulse?.label ?? 'No data'}</p>
+                </div>
+              </div>
             </div>
-            <div className="p-3 bg-green-50 rounded-lg border border-green-100"><CheckCircle2 className="w-5 h-5 text-green-600" /></div>
+
+            <div className="mt-5 grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="rounded-xl border border-gray-100 bg-gray-50 p-4">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-gray-400">Working rhythm</p>
+                <p className="mt-2 text-sm font-bold text-gray-900">{todayAtt?.totalHours != null ? `${todayAtt.totalHours} hours logged` : 'Waiting for today\'s activity'}</p>
+                <p className="mt-1 text-xs text-gray-500">{isCheckedOut ? 'Session completed' : isCheckedIn ? 'Still active' : 'Not started yet'}</p>
+              </div>
+              <div className="rounded-xl border border-gray-100 bg-gray-50 p-4">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-gray-400">Leave balance</p>
+                <p className="mt-2 text-sm font-bold text-gray-900">{employeeStats.leaveBalance.paidLeave + employeeStats.leaveBalance.sickLeave} days available</p>
+                <p className="mt-1 text-xs text-gray-500">Paid + sick leave combined</p>
+              </div>
+              <div className="rounded-xl border border-gray-100 bg-gray-50 p-4">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-gray-400">Attention signal</p>
+                <p className="mt-2 text-sm font-bold text-gray-900">{employeeStats.pendingLeavesCount > 0 ? `${employeeStats.pendingLeavesCount} pending request${employeeStats.pendingLeavesCount > 1 ? 's' : ''}` : 'All clear'}</p>
+                <p className="mt-1 text-xs text-gray-500">{employeeStats.pendingLeavesCount > 0 ? 'Needs follow-up' : 'Nothing urgent today'}</p>
+              </div>
+            </div>
+
+            <div className="mt-5 grid gap-2">
+              {(employeeWorkPulse?.signals || []).map((signal) => (
+                <div key={signal.text} className={`flex items-start gap-2 rounded-lg border px-3 py-2 text-xs ${signal.tone === 'warning' ? 'border-amber-100 bg-amber-50 text-amber-800' : signal.tone === 'success' ? 'border-emerald-100 bg-emerald-50 text-emerald-800' : 'border-slate-100 bg-slate-50 text-slate-700'}`}>
+                  <Activity className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                  <span>{signal.text}</span>
+                </div>
+              ))}
+            </div>
           </div>
-          <div className="stat-card p-5 rounded-xl flex items-center justify-between">
-            <div>
-              <p className="text-xs text-gray-500 font-medium">Sick Leave</p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">{employeeStats.leaveBalance.sickLeave} <span className="text-xs font-normal text-gray-400">days</span></p>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="stat-card p-5 rounded-xl flex items-center justify-between">
+              <div>
+                <p className="text-xs text-gray-500 font-medium">Paid Leave</p>
+                <p className="text-2xl font-bold text-gray-900 mt-1">{employeeStats.leaveBalance.paidLeave} <span className="text-xs font-normal text-gray-400">days</span></p>
+              </div>
+              <div className="p-3 bg-green-50 rounded-lg border border-green-100"><CheckCircle2 className="w-5 h-5 text-green-600" /></div>
             </div>
-            <div className="p-3 bg-indigo-50 rounded-lg border border-indigo-100"><CalendarDays className="w-5 h-5 text-indigo-600" /></div>
-          </div>
-          <div className="stat-card p-5 rounded-xl flex items-center justify-between">
-            <div>
-              <p className="text-xs text-gray-500 font-medium">Pending Requests</p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">{employeeStats.pendingLeavesCount}</p>
+            <div className="stat-card p-5 rounded-xl flex items-center justify-between">
+              <div>
+                <p className="text-xs text-gray-500 font-medium">Sick Leave</p>
+                <p className="text-2xl font-bold text-gray-900 mt-1">{employeeStats.leaveBalance.sickLeave} <span className="text-xs font-normal text-gray-400">days</span></p>
+              </div>
+              <div className="p-3 bg-indigo-50 rounded-lg border border-indigo-100"><CalendarDays className="w-5 h-5 text-indigo-600" /></div>
             </div>
-            <div className="p-3 bg-amber-50 rounded-lg border border-amber-100"><AlertCircle className="w-5 h-5 text-amber-600" /></div>
+            <div className="stat-card p-5 rounded-xl flex items-center justify-between">
+              <div>
+                <p className="text-xs text-gray-500 font-medium">Pending Requests</p>
+                <p className="text-2xl font-bold text-gray-900 mt-1">{employeeStats.pendingLeavesCount}</p>
+              </div>
+              <div className="p-3 bg-amber-50 rounded-lg border border-amber-100"><AlertCircle className="w-5 h-5 text-amber-600" /></div>
+            </div>
           </div>
         </div>
       )}
 
       {/* Charts */}
       {user?.role === 'Admin' && adminStats && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="space-y-6">
+          <div className="panel-elevated rounded-xl p-6">
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+              <div>
+                <div className="inline-flex items-center gap-1.5 rounded-full bg-violet-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-violet-700">
+                  <ShieldAlert className="h-3.5 w-3.5" /> WorkPulse
+                </div>
+                <h3 className="mt-2 text-base font-bold text-gray-900">Employees requiring attention</h3>
+                <p className="mt-1 text-xs text-gray-500">A health-style summary of workforce well-being, not just attendance.</p>
+              </div>
+              <div className="flex items-center gap-3 rounded-2xl border border-violet-100 bg-violet-50/60 px-4 py-3">
+                <div className="flex h-14 w-14 items-center justify-center rounded-full border border-violet-200 bg-white">
+                  <span className="text-xl font-extrabold text-violet-700">{adminWorkPulse?.score ?? 0}</span>
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-violet-700">WorkPulse Score</p>
+                  <p className="text-sm font-semibold text-gray-800">{adminWorkPulse?.label ?? 'No data'}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-5 grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="rounded-xl border border-gray-100 bg-gray-50 p-4">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-gray-400">Present today</p>
+                <p className="mt-2 text-sm font-bold text-gray-900">{adminStats.presentToday} / {adminStats.totalEmployees}</p>
+                <p className="mt-1 text-xs text-gray-500">Current attendance snapshot</p>
+              </div>
+              <div className="rounded-xl border border-gray-100 bg-gray-50 p-4">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-gray-400">Leave pressure</p>
+                <p className="mt-2 text-sm font-bold text-gray-900">{adminStats.pendingLeaveRequests} pending, {adminStats.activeLeavesToday} active</p>
+                <p className="mt-1 text-xs text-gray-500">Requests and current time-off load</p>
+              </div>
+              <div className="rounded-xl border border-gray-100 bg-gray-50 p-4">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-gray-400">Focus area</p>
+                <p className="mt-2 text-sm font-bold text-gray-900">
+                  {adminWorkPulse?.signals[0]?.text || 'Monitoring workforce health'}
+                </p>
+                <p className="mt-1 text-xs text-gray-500">One-line insight for HR action</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 panel-elevated p-6 rounded-xl">
             <div className="flex items-center justify-between mb-6">
               <div>
@@ -212,6 +388,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveTab }) => {
                 </div>
               ))}
             </div>
+          </div>
           </div>
         </div>
       )}

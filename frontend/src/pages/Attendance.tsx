@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { apiRequest } from '../api/client';
 import { AttendanceRecord } from '../types';
 import { Clock, Play, Square, Calendar, Filter, Edit2, Search } from 'lucide-react';
+import { PageInsights } from '../components/PageInsights';
 
 export const Attendance: React.FC = () => {
   const { user, refreshProfile } = useAuth();
@@ -40,6 +41,19 @@ export const Attendance: React.FC = () => {
     const q = searchFilter.toLowerCase();
     return ((r.employeeName || '').toLowerCase().includes(q) || r.employeeId.toLowerCase().includes(q) || r.date.includes(searchFilter)) && (statusFilter === 'All' || r.status === statusFilter);
   });
+  const attendanceInsights = user?.role === 'Admin'
+    ? [
+        { label: 'All attendance records', value: String(allAttendance.length), note: 'Master log for every employee', icon: Calendar, tone: 'indigo' as const },
+        { label: 'Filtered results', value: String(filteredAll.length), note: 'Matches for the current search', icon: Search, tone: 'cyan' as const },
+        { label: 'Today\'s status', value: todayRecord?.status || 'No record', note: todayRecord ? `Check-in ${todayRecord.checkIn || '--'} • Check-out ${todayRecord.checkOut || '--'}` : 'No entry for today yet', icon: Clock, tone: 'amber' as const },
+        { label: 'Hours today', value: todayRecord?.totalHours != null ? `${todayRecord.totalHours}h` : '--', note: 'Work time captured so far', icon: Play, tone: 'emerald' as const },
+      ]
+    : [
+        { label: 'My attendance logs', value: String(myAttendance.length), note: 'Personal attendance history', icon: Calendar, tone: 'indigo' as const },
+        { label: 'Weekly records', value: String(weeklyRecords.length), note: 'Entries in the current weekly view', icon: Filter, tone: 'cyan' as const },
+        { label: 'Today\'s status', value: todayRecord?.status || 'No record', note: isCheckedOut ? 'Session completed' : isCheckedIn ? 'You are clocked in' : 'Not clocked in yet', icon: Clock, tone: 'amber' as const },
+        { label: 'Hours today', value: todayRecord?.totalHours != null ? `${todayRecord.totalHours}h` : '--', note: 'Live work duration snapshot', icon: Square, tone: 'emerald' as const },
+      ];
 
   const statusBadge = (s: string) => {
     const styles: Record<string, string> = { Present: 'bg-green-50 text-green-700 border-green-200', 'Half-day': 'bg-amber-50 text-amber-700 border-amber-200', Leave: 'bg-purple-50 text-purple-700 border-purple-200', Absent: 'bg-red-50 text-red-700 border-red-200' };
@@ -67,6 +81,15 @@ export const Attendance: React.FC = () => {
           ) : (<span className="text-xs font-semibold text-gray-400 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-200">Done</span>)}
         </div>
       </div>
+
+      <PageInsights
+        eyebrow="Attendance insights"
+        title="Live attendance snapshot"
+        description="See the current clock status, weekly activity, and the most relevant attendance signals at a glance."
+        icon={Clock}
+        cards={attendanceInsights}
+      />
+
       {actionMessage && <div className="p-3 rounded-lg bg-indigo-50 border border-indigo-100 text-indigo-700 text-xs font-medium text-center">{actionMessage}</div>}
 
       {user?.role !== 'Admin' && <div className="panel-elevated rounded-xl overflow-hidden"><div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between"><h3 className="font-semibold text-sm text-gray-800">Weekly view</h3><input type="date" value={weekEnd} onChange={(e) => setWeekEnd(e.target.value)} className="px-2 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs" /></div><div className="grid grid-cols-2 gap-3 p-4 sm:grid-cols-4 lg:grid-cols-7">{weeklyRecords.map((record) => <div key={record.id} className="rounded-lg border border-gray-100 bg-gray-50 p-3"><p className="text-[10px] font-semibold text-gray-400">{record.date}</p><p className="mt-2 text-xs font-bold text-gray-800">{record.status}</p><p className="mt-1 text-[10px] text-gray-500">{record.totalHours ? `${record.totalHours}h` : 'No hours'}</p></div>)}{weeklyRecords.length === 0 && <p className="col-span-full py-4 text-center text-xs text-gray-400">No attendance records for this week.</p>}</div></div>}
