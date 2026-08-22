@@ -111,7 +111,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveTab }) => {
             { label: 'Total Employees', value: adminStats.totalEmployees, sub: 'Active workforce', icon: Users, color: 'indigo', trend: <TrendingUp className="w-3 h-3 mr-0.5" /> },
             { label: 'Present Today', value: adminStats.presentToday, sub: `${Math.round((adminStats.presentToday / adminStats.totalEmployees) * 100)}% rate`, icon: Clock, color: 'green' },
             { label: 'Pending Approvals', value: adminStats.pendingLeaveRequests, sub: 'Requires review', icon: CalendarDays, color: 'amber' },
-            { label: 'Monthly Payroll', value: `$${adminStats.totalMonthlyPayroll.toLocaleString()}`, sub: 'Net liability', icon: DollarSign, color: 'purple' },
+            { label: 'Monthly Payroll', value: `₹${adminStats.totalMonthlyPayroll.toLocaleString()}`, sub: 'Net liability', icon: DollarSign, color: 'purple' },
           ].map((card) => {
             const Icon = card.icon;
             return (

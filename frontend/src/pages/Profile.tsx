@@ -122,7 +122,7 @@ export const Profile: React.FC = () => {
           ].map((s) => (
             <div key={s.label} className="text-center p-4 bg-gray-50 rounded-lg border border-gray-200">
               <p className="text-xs text-gray-500">{s.label}</p>
-              <p className="text-lg font-bold text-gray-900 mt-1 font-mono">${s.value.toLocaleString()}</p>
+              <p className="text-lg font-bold text-gray-900 mt-1 font-mono">₹{s.value.toLocaleString()}</p>
             </div>
           ))}
         </div>

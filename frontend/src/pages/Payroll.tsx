@@ -83,17 +83,17 @@ Paid Days: ${payslip.paidDays}
 Date Issued: ${payslip.issuedDate}
 ${'─'.repeat(50)}
 EARNINGS
-  Basic Salary        $${sal.basic.toLocaleString()}
-  HRA                 $${sal.hra.toLocaleString()}
-  Special Allowance   $${sal.specialAllowance.toLocaleString()}
-  Conveyance          $${sal.conveyance.toLocaleString()}
-  Gross Salary        $${sal.grossSalary.toLocaleString()}
+  Basic Salary        ₹${sal.basic.toLocaleString()}
+  HRA                 ₹${sal.hra.toLocaleString()}
+  Special Allowance   ₹${sal.specialAllowance.toLocaleString()}
+  Conveyance          ₹${sal.conveyance.toLocaleString()}
+  Gross Salary        ₹${sal.grossSalary.toLocaleString()}
 ${'─'.repeat(50)}
 DEDUCTIONS
-  PF Deduction        $${sal.pfDeduction.toLocaleString()}
-  Tax Deduction       $${sal.taxDeduction.toLocaleString()}
+  PF Deduction        ₹${sal.pfDeduction.toLocaleString()}
+  Tax Deduction       ₹${sal.taxDeduction.toLocaleString()}
 ${'─'.repeat(50)}
-NET PAY:              $${sal.netSalary.toLocaleString()}
+NET PAY:              ₹${sal.netSalary.toLocaleString()}
 ${'═'.repeat(50)}`;
     const blob = new Blob([content], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
@@ -135,7 +135,7 @@ ${'═'.repeat(50)}`;
               <div key={s.label} className="text-center p-4 bg-gray-50 rounded-lg border border-gray-200">
                 <Icon className={`w-5 h-5 text-${s.color}-500 mx-auto mb-2`} />
                 <p className="text-xs text-gray-500">{s.label}</p>
-                <p className="text-xl font-bold text-gray-900 mt-0.5 font-mono">${s.value.toLocaleString()}</p>
+                <p className="text-xl font-bold text-gray-900 mt-0.5 font-mono">₹{s.value.toLocaleString()}</p>
               </div>
             ); })}
           </div>
@@ -153,9 +153,9 @@ ${'═'.repeat(50)}`;
                 <tr key={item.id} className="hover:bg-gray-50/50">
                   <td className="py-2.5 px-5"><span className="font-medium text-gray-800">{item.name}</span><span className="text-[10px] text-gray-400 ml-1.5 font-mono">{item.employeeId}</span></td>
                   <td className="py-2.5 px-5 text-gray-600">{item.department}</td>
-                  <td className="py-2.5 px-5 font-mono text-gray-700">${item.salaryStructure.basic.toLocaleString()}</td>
-                  <td className="py-2.5 px-5 font-mono text-gray-700">${item.salaryStructure.grossSalary.toLocaleString()}</td>
-                  <td className="py-2.5 px-5 font-mono font-semibold text-indigo-600">${item.salaryStructure.netSalary.toLocaleString()}</td>
+                  <td className="py-2.5 px-5 font-mono text-gray-700">₹{item.salaryStructure.basic.toLocaleString()}</td>
+                  <td className="py-2.5 px-5 font-mono text-gray-700">₹{item.salaryStructure.grossSalary.toLocaleString()}</td>
+                  <td className="py-2.5 px-5 font-mono font-semibold text-indigo-600">₹{item.salaryStructure.netSalary.toLocaleString()}</td>
                   <td className="py-2.5 px-5 text-right">
                     <button onClick={() => { setEditingSalary(item); setSalaryForm({ ...item.salaryStructure }); }}
                       className="px-3 py-1 bg-gray-100 hover:bg-indigo-600 hover:text-white text-gray-600 rounded-md text-[11px] transition-colors">Edit</button>
@@ -177,9 +177,9 @@ ${'═'.repeat(50)}`;
               <tr key={p.id} className="hover:bg-gray-50/50">
                 <td className="py-2.5 px-5 font-medium text-gray-800">{p.month}</td>
                 <td className="py-2.5 px-5 text-gray-600">{p.paidDays}</td>
-                <td className="py-2.5 px-5 font-mono text-gray-700">${p.salaryStructure.grossSalary.toLocaleString()}</td>
-                <td className="py-2.5 px-5 font-mono text-red-500">-${(p.salaryStructure.pfDeduction + p.salaryStructure.taxDeduction).toLocaleString()}</td>
-                <td className="py-2.5 px-5 font-mono font-semibold text-indigo-600">${p.salaryStructure.netSalary.toLocaleString()}</td>
+                <td className="py-2.5 px-5 font-mono text-gray-700">₹{p.salaryStructure.grossSalary.toLocaleString()}</td>
+                <td className="py-2.5 px-5 font-mono text-red-500">-₹{(p.salaryStructure.pfDeduction + p.salaryStructure.taxDeduction).toLocaleString()}</td>
+                <td className="py-2.5 px-5 font-mono font-semibold text-indigo-600">₹{p.salaryStructure.netSalary.toLocaleString()}</td>
                 <td className="py-2.5 px-5 text-gray-400 font-mono">{p.issuedDate}</td>
                 <td className="py-2.5 px-5"><span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold border ${p.status === 'Paid' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>{p.status}</span></td>
                 <td className="py-2.5 px-5 text-right space-x-1">
@@ -204,16 +204,16 @@ ${'═'.repeat(50)}`;
               <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
                 <p className="font-semibold text-gray-700 mb-2">Earnings</p>
                 {[['Basic', viewSlip.salaryStructure.basic], ['HRA', viewSlip.salaryStructure.hra], ['Special Allowance', viewSlip.salaryStructure.specialAllowance], ['Conveyance', viewSlip.salaryStructure.conveyance]].map(([l, v]) => (
-                  <div key={l as string} className="flex justify-between py-1 text-gray-600"><span>{l}</span><span className="font-mono font-medium text-gray-800">${(v as number).toLocaleString()}</span></div>
+                  <div key={l as string} className="flex justify-between py-1 text-gray-600"><span>{l}</span><span className="font-mono font-medium text-gray-800">₹{(v as number).toLocaleString()}</span></div>
                 ))}
-                <div className="border-t border-gray-200 mt-2 pt-2 flex justify-between font-semibold text-gray-800"><span>Gross Salary</span><span className="font-mono">${viewSlip.salaryStructure.grossSalary.toLocaleString()}</span></div>
+                <div className="border-t border-gray-200 mt-2 pt-2 flex justify-between font-semibold text-gray-800"><span>Gross Salary</span><span className="font-mono">₹{viewSlip.salaryStructure.grossSalary.toLocaleString()}</span></div>
               </div>
               <div className="p-3 bg-red-50/50 rounded-lg border border-red-100">
                 <p className="font-semibold text-red-700 mb-2">Deductions</p>
-                <div className="flex justify-between py-1 text-red-600"><span>PF</span><span className="font-mono">-${viewSlip.salaryStructure.pfDeduction.toLocaleString()}</span></div>
-                <div className="flex justify-between py-1 text-red-600"><span>Tax</span><span className="font-mono">-${viewSlip.salaryStructure.taxDeduction.toLocaleString()}</span></div>
+                <div className="flex justify-between py-1 text-red-600"><span>PF</span><span className="font-mono">-₹{viewSlip.salaryStructure.pfDeduction.toLocaleString()}</span></div>
+                <div className="flex justify-between py-1 text-red-600"><span>Tax</span><span className="font-mono">-₹{viewSlip.salaryStructure.taxDeduction.toLocaleString()}</span></div>
               </div>
-              <div className="p-4 bg-indigo-50 rounded-lg border border-indigo-200 flex justify-between text-base font-bold text-indigo-800"><span>Net Pay</span><span className="font-mono">${viewSlip.salaryStructure.netSalary.toLocaleString()}</span></div>
+              <div className="p-4 bg-indigo-50 rounded-lg border border-indigo-200 flex justify-between text-base font-bold text-indigo-800"><span>Net Pay</span><span className="font-mono">₹{viewSlip.salaryStructure.netSalary.toLocaleString()}</span></div>
               <div className="pt-2 flex justify-end"><button onClick={() => downloadPayslip(viewSlip)} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-lg shadow-sm flex items-center space-x-1.5"><Download className="w-3.5 h-3.5" /><span>Download</span></button></div>
             </div>
           </div>
@@ -230,8 +230,8 @@ ${'═'.repeat(50)}`;
                 <div key={field} className="flex items-center justify-between"><label className="text-gray-600 font-medium capitalize">{field.replace(/([A-Z])/g, ' $1')}</label><input type="number" value={salaryForm[field]} onChange={(e) => { const v = Number(e.target.value); const nf = { ...salaryForm, [field]: v }; nf.grossSalary = nf.basic + nf.hra + nf.specialAllowance + nf.conveyance; nf.netSalary = nf.grossSalary - nf.pfDeduction - nf.taxDeduction; setSalaryForm(nf); }} className="w-28 p-2 bg-gray-50 border border-gray-200 rounded-lg text-right font-mono text-gray-800 focus:outline-none focus:border-indigo-400" /></div>
               ))}
               <div className="border-t border-gray-200 pt-3 space-y-1">
-                <div className="flex justify-between text-gray-600"><span>Gross</span><span className="font-mono font-medium text-gray-800">${salaryForm.grossSalary.toLocaleString()}</span></div>
-                <div className="flex justify-between text-indigo-700 font-bold"><span>Net Pay</span><span className="font-mono">${salaryForm.netSalary.toLocaleString()}</span></div>
+                <div className="flex justify-between text-gray-600"><span>Gross</span><span className="font-mono font-medium text-gray-800">₹{salaryForm.grossSalary.toLocaleString()}</span></div>
+                <div className="flex justify-between text-indigo-700 font-bold"><span>Net Pay</span><span className="font-mono">₹{salaryForm.netSalary.toLocaleString()}</span></div>
               </div>
               <div className="pt-3 flex items-center justify-end space-x-2">
                 <button onClick={() => setEditingSalary(null)} className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg">Cancel</button>

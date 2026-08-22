@@ -112,7 +112,7 @@ export const Employees: React.FC<EmployeesProps> = () => {
                     <p className="text-xs text-gray-400 flex items-center gap-1 mt-0.5"><Phone className="w-3 h-3 text-gray-400" /> {emp.phone}</p>
                   </td>
                   <td className="py-3.5 px-5 text-xs text-gray-500">{emp.joiningDate}</td>
-                  <td className="py-3.5 px-5 text-sm font-semibold text-gray-800 font-mono">${emp.salaryStructure.netSalary.toLocaleString()}</td>
+                  <td className="py-3.5 px-5 text-sm font-semibold text-gray-800 font-mono">₹{emp.salaryStructure.netSalary.toLocaleString()}</td>
                   {user?.role === 'Admin' && (
                     <td className="py-3.5 px-5 text-right">
                       <button onClick={() => handleDelete(emp.id, emp.name)} className="p-1.5 text-gray-400 hover:text-red-500 rounded-md hover:bg-red-50 transition-colors" title="Remove">
