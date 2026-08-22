@@ -93,9 +93,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         register,
         logout,
         demoLogin,
-        refreshProfile,
-
-        
+        refreshProfile
       }}
     >
       {children}

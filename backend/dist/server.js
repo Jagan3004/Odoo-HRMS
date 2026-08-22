@@ -13,12 +13,16 @@ const attendance_1 = __importDefault(require("./routes/attendance"));
 const leaves_1 = __importDefault(require("./routes/leaves"));
 const payroll_1 = __importDefault(require("./routes/payroll"));
 const stats_1 = __importDefault(require("./routes/stats"));
+const uploads_1 = __importDefault(require("./routes/uploads"));
+const path_1 = __importDefault(require("path"));
 dotenv_1.default.config();
 const app = (0, express_1.default)();
 const PORT = process.env.PORT || 5000;
 // Middleware
 app.use((0, cors_1.default)());
 app.use(express_1.default.json());
+// Serve uploaded files
+app.use('/uploads', express_1.default.static(path_1.default.join(__dirname, '../uploads')));
 // API Routes
 app.use('/api/auth', auth_1.default);
 app.use('/api/employees', employees_1.default);
@@ -26,6 +30,7 @@ app.use('/api/attendance', attendance_1.default);
 app.use('/api/leaves', leaves_1.default);
 app.use('/api/payroll', payroll_1.default);
 app.use('/api/stats', stats_1.default);
+app.use('/api/uploads', uploads_1.default);
 // Health check endpoint
 app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString(), service: 'Dayflow HRMS Backend', database: 'PostgreSQL' });

@@ -8,6 +8,8 @@ import attendanceRoutes from './routes/attendance';
 import leaveRoutes from './routes/leaves';
 import payrollRoutes from './routes/payroll';
 import statsRoutes from './routes/stats';
+import uploadRoutes from './routes/uploads';
+import path from 'path';
 
 dotenv.config();
 
@@ -18,6 +20,9 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
+// Serve uploaded files
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/employees', employeeRoutes);
@@ -25,6 +30,7 @@ app.use('/api/attendance', attendanceRoutes);
 app.use('/api/leaves', leaveRoutes);
 app.use('/api/payroll', payrollRoutes);
 app.use('/api/stats', statsRoutes);
+app.use('/api/uploads', uploadRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

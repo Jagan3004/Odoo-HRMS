@@ -97,4 +97,30 @@ router.get('/me', auth_1.authenticateToken, async (req, res) => {
         return res.status(500).json({ message: 'Internal server error' });
     }
 });
+// CHANGE PASSWORD
+router.put('/change-password', auth_1.authenticateToken, async (req, res) => {
+    const { currentPassword, newPassword } = req.body;
+    if (!req.user)
+        return res.status(401).json({ message: 'Unauthorized' });
+    if (!currentPassword || !newPassword)
+        return res.status(400).json({ message: 'Current and new passwords are required' });
+    if (newPassword.length < 4)
+        return res.status(400).json({ message: 'New password must be at least 4 characters' });
+    try {
+        const userResult = await db_1.pool.query('SELECT * FROM users WHERE employee_id = $1', [req.user.employeeId]);
+        if (userResult.rows.length === 0)
+            return res.status(404).json({ message: 'User not found' });
+        const user = userResult.rows[0];
+        if (!bcryptjs_1.default.compareSync(currentPassword, user.password_hash)) {
+            return res.status(400).json({ message: 'Current password is incorrect' });
+        }
+        const newHash = bcryptjs_1.default.hashSync(newPassword, 10);
+        await db_1.pool.query('UPDATE users SET password_hash = $1 WHERE employee_id = $2', [newHash, req.user.employeeId]);
+        return res.json({ message: 'Password updated successfully' });
+    }
+    catch (err) {
+        console.error('Change password error:', err);
+        return res.status(500).json({ message: 'Internal server error' });
+    }
+});
 exports.default = router;

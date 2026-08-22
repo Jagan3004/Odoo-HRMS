@@ -136,6 +136,20 @@ CREATE INDEX idx_payslips_employee ON payslips(employee_id);
 CREATE INDEX idx_payslips_month ON payslips(month_code);
 
 -- ============================================================
+-- TABLE: documents
+-- ============================================================
+CREATE TABLE documents (
+    id              SERIAL PRIMARY KEY,
+    employee_id     VARCHAR(20) NOT NULL REFERENCES users(employee_id) ON DELETE CASCADE,
+    name            VARCHAR(255) NOT NULL,
+    type            VARCHAR(50) NOT NULL DEFAULT 'General',
+    file_url        TEXT NOT NULL,
+    upload_date     DATE NOT NULL DEFAULT CURRENT_DATE
+);
+
+CREATE INDEX idx_documents_employee ON documents(employee_id);
+
+-- ============================================================
 -- TABLE: notifications
 -- ============================================================
 CREATE TABLE notifications (

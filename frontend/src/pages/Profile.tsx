@@ -1,10 +1,20 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { apiRequest } from '../api/client';
-import { UserCheck, Mail, Phone, Building, Briefcase, Calendar, MapPin, Save, Key, Shield, CreditCard } from 'lucide-react';
+import { UserCheck, Mail, Phone, Building, Briefcase, Calendar, MapPin, Save, Key, Shield, CreditCard, Camera, FileText, Upload, Trash2, Download } from 'lucide-react';
+
+const API_BASE = 'http://localhost:5000';
+
+interface Doc {
+  id: string;
+  name: string;
+  type: string;
+  url: string;
+  uploadDate: string;
+}
 
 export const Profile: React.FC = () => {
-  const { user, employee, refreshProfile } = useAuth();
+  const { user, employee, token, refreshProfile } = useAuth();
   const [editing, setEditing] = useState(false);
   const [phone, setPhone] = useState(employee?.phone || '');
   const [address, setAddress] = useState(employee?.address || '');
@@ -13,6 +23,28 @@ export const Profile: React.FC = () => {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [passwordMsg, setPasswordMsg] = useState<string | null>(null);
+
+  // Avatar
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+
+  // Documents
+  const [documents, setDocuments] = useState<Doc[]>([]);
+  const [docUploading, setDocUploading] = useState(false);
+  const [docName, setDocName] = useState('');
+  const [docType, setDocType] = useState('ID Proof');
+  const docInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    fetchDocuments();
+  }, []);
+
+  const fetchDocuments = async () => {
+    try {
+      const res = await apiRequest<Doc[]>('/uploads/documents');
+      setDocuments(res);
+    } catch (err) { console.error(err); }
+  };
 
   const handleSave = async () => {
     setSaving(true);
@@ -25,9 +57,55 @@ export const Profile: React.FC = () => {
     try { await apiRequest('/auth/change-password', 'PUT', { currentPassword, newPassword }); setPasswordMsg('Password updated successfully.'); setCurrentPassword(''); setNewPassword(''); setShowPasswordForm(false); } catch (err: any) { setPasswordMsg(err.message); }
   };
 
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setAvatarUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('avatar', file);
+      const res = await fetch(`${API_BASE}/api/uploads/avatar`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      });
+      if (!res.ok) { const err = await res.json(); throw new Error(err.message); }
+      await refreshProfile();
+    } catch (err: any) { alert(err.message || 'Upload failed'); }
+    finally { setAvatarUploading(false); if (fileInputRef.current) fileInputRef.current.value = ''; }
+  };
+
+  const handleDocUpload = async () => {
+    const file = docInputRef.current?.files?.[0];
+    if (!file) return;
+    setDocUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('document', file);
+      formData.append('docName', docName || file.name);
+      formData.append('docType', docType);
+      const res = await fetch(`${API_BASE}/api/uploads/document`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      });
+      if (!res.ok) { const err = await res.json(); throw new Error(err.message); }
+      await fetchDocuments();
+      setDocName('');
+      if (docInputRef.current) docInputRef.current.value = '';
+    } catch (err: any) { alert(err.message || 'Upload failed'); }
+    finally { setDocUploading(false); }
+  };
+
+  const handleDocDelete = async (id: string) => {
+    if (!confirm('Delete this document?')) return;
+    try { await apiRequest(`/uploads/document/${id}`, 'DELETE'); await fetchDocuments(); } catch (err: any) { alert(err.message); }
+  };
+
   if (!employee) return <div className="flex items-center justify-center min-h-[400px]"><div className="animate-spin rounded-full h-8 w-8 border-2 border-indigo-200 border-t-indigo-600" /></div>;
 
   const sal = employee.salaryStructure;
+  const avatarSrc = employee.avatarUrl ? `${API_BASE}${employee.avatarUrl}` : null;
 
   return (
     <div className="space-y-6 max-w-4xl">
@@ -39,9 +117,26 @@ export const Profile: React.FC = () => {
       {/* Profile Card */}
       <div className="panel-elevated rounded-xl p-6">
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5">
-          <div className="w-16 h-16 rounded-xl bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-2xl border border-indigo-200 shrink-0">
-            {employee.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
+          {/* Avatar */}
+          <div className="relative group shrink-0">
+            {avatarSrc ? (
+              <img src={avatarSrc} alt={employee.name} className="w-16 h-16 rounded-xl object-cover border-2 border-indigo-100" />
+            ) : (
+              <div className="w-16 h-16 rounded-xl bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-2xl border border-indigo-200">
+                {employee.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
+              </div>
+            )}
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={avatarUploading}
+              className="absolute -bottom-1 -right-1 w-7 h-7 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg flex items-center justify-center shadow-md transition-all opacity-0 group-hover:opacity-100"
+              title="Change photo"
+            >
+              {avatarUploading ? <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Camera className="w-3.5 h-3.5" />}
+            </button>
+            <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
           </div>
+
           <div className="flex-1">
             <div className="flex items-center gap-2 flex-wrap">
               <h2 className="text-xl font-bold text-gray-900">{employee.name}</h2>
@@ -126,6 +221,74 @@ export const Profile: React.FC = () => {
             </div>
           ))}
         </div>
+      </div>
+
+      {/* Documents */}
+      <div className="panel-elevated rounded-xl p-6">
+        <h3 className="font-semibold text-sm text-gray-900 mb-4 flex items-center gap-2"><FileText className="w-4 h-4 text-blue-500" /> Documents</h3>
+
+        {/* Upload Form */}
+        <div className="flex flex-wrap items-end gap-3 mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+          <div className="flex-1 min-w-[150px]">
+            <label className="block text-[10px] text-gray-500 font-semibold mb-1">DOCUMENT NAME</label>
+            <input type="text" placeholder="e.g. Aadhar Card" value={docName} onChange={(e) => setDocName(e.target.value)}
+              className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-xs text-gray-800 focus:outline-none focus:border-indigo-400" />
+          </div>
+          <div className="w-32">
+            <label className="block text-[10px] text-gray-500 font-semibold mb-1">TYPE</label>
+            <select value={docType} onChange={(e) => setDocType(e.target.value)}
+              className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-xs text-gray-800 focus:outline-none focus:border-indigo-400">
+              <option>ID Proof</option>
+              <option>Address Proof</option>
+              <option>Offer Letter</option>
+              <option>Resume</option>
+              <option>Certificate</option>
+              <option>Other</option>
+            </select>
+          </div>
+          <div>
+            <input ref={docInputRef} type="file" className="hidden" onChange={() => {}} />
+            <button onClick={() => docInputRef.current?.click()}
+              className="px-3 py-2 bg-white border border-gray-200 rounded-lg text-xs text-gray-600 hover:bg-gray-100 transition-colors flex items-center gap-1.5">
+              <Upload className="w-3.5 h-3.5" /> Choose File
+            </button>
+          </div>
+          <button onClick={handleDocUpload} disabled={docUploading}
+            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-lg shadow-sm flex items-center gap-1.5 disabled:opacity-50">
+            {docUploading ? 'Uploading...' : <><Upload className="w-3.5 h-3.5" /> Upload</>}
+          </button>
+        </div>
+
+        {/* Document List */}
+        {documents.length === 0 ? (
+          <p className="text-xs text-gray-400 text-center py-6">No documents uploaded yet.</p>
+        ) : (
+          <div className="divide-y divide-gray-100">
+            {documents.map((doc) => (
+              <div key={doc.id} className="flex items-center justify-between py-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center border border-blue-100">
+                    <FileText className="w-4 h-4 text-blue-500" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-800">{doc.name}</p>
+                    <p className="text-[10px] text-gray-400">{doc.type} · Uploaded {doc.uploadDate}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <a href={`${API_BASE}${doc.url}`} target="_blank" rel="noopener noreferrer"
+                    className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors" title="Download">
+                    <Download className="w-4 h-4" />
+                  </a>
+                  <button onClick={() => handleDocDelete(doc.id)}
+                    className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors" title="Delete">
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Change Password */}
