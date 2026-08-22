@@ -10,15 +10,17 @@ interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
   const { user } = useAuth();
 
-  const navItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'employees', label: 'Employees', icon: Users },
-    { id: 'attendance', label: 'Attendance', icon: Clock },
-    { id: 'leaves', label: 'Leave & Time-Off', icon: CalendarDays },
-    { id: 'payroll', label: 'Payroll & Payslips', icon: CreditCard },
-    { id: 'analytics', label: 'HR Analytics', icon: BarChart3 },
-    { id: 'profile', label: 'My Profile', icon: UserCheck },
+  const allNavItems = [
+    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['Admin', 'Employee'] },
+    { id: 'employees', label: 'Employees', icon: Users, roles: ['Admin'] },
+    { id: 'attendance', label: 'Attendance', icon: Clock, roles: ['Admin', 'Employee'] },
+    { id: 'leaves', label: 'Leave & Time-Off', icon: CalendarDays, roles: ['Admin', 'Employee'] },
+    { id: 'payroll', label: 'Payroll & Payslips', icon: CreditCard, roles: ['Admin', 'Employee'] },
+    { id: 'analytics', label: 'HR Analytics', icon: BarChart3, roles: ['Admin'] },
+    { id: 'profile', label: 'My Profile', icon: UserCheck, roles: ['Admin', 'Employee'] },
   ];
+
+  const navItems = allNavItems.filter((item) => item.roles.includes(user?.role || 'Employee'));
 
   return (
     <aside className="w-60 bg-white border-r border-gray-200 p-3 flex flex-col justify-between hidden md:flex shrink-0 min-h-[calc(100vh-57px)] no-print">

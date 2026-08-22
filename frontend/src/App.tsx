@@ -26,14 +26,16 @@ const AppContent: React.FC = () => {
 
   if (!user) return <Login />;
 
+  const isAdmin = user?.role === 'Admin';
+
   const renderActiveView = () => {
     switch (activeTab) {
       case 'dashboard': return <Dashboard setActiveTab={setActiveTab} />;
-      case 'employees': return <Employees setActiveTab={setActiveTab} />;
+      case 'employees': return isAdmin ? <Employees setActiveTab={setActiveTab} /> : <Dashboard setActiveTab={setActiveTab} />;
       case 'attendance': return <Attendance />;
       case 'leaves': return <Leaves />;
       case 'payroll': return <Payroll />;
-      case 'analytics': return <Analytics />;
+      case 'analytics': return isAdmin ? <Analytics /> : <Dashboard setActiveTab={setActiveTab} />;
       case 'profile': return <Profile />;
       default: return <Dashboard setActiveTab={setActiveTab} />;
     }
