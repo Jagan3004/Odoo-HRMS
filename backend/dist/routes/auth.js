@@ -8,6 +8,7 @@ const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const db_1 = require("../db");
 const auth_1 = require("../middleware/auth");
+const crypto_1 = __importDefault(require("crypto"));
 const router = (0, express_1.Router)();
 // LOGIN
 router.post('/login', async (req, res) => {
@@ -21,11 +22,14 @@ router.post('/login', async (req, res) => {
             return res.status(401).json({ message: 'Invalid credentials. User not found.' });
         }
         const user = userResult.rows[0];
+        if (user.email_verified === false)
+            return res.status(403).json({ message: 'Please verify your email before signing in.', code: 'EMAIL_VERIFICATION_REQUIRED' });
         const isPasswordValid = bcryptjs_1.default.compareSync(password, user.password_hash);
         if (!isPasswordValid) {
             return res.status(401).json({ message: 'Invalid credentials. Password incorrect.' });
         }
-        const empResult = await db_1.pool.query('SELECT * FROM employees WHERE employee_id = $1', [user.employee_id]);
+        const empResult = await db_1.pool.query(`SELECT e.*, COALESCE((SELECT json_agg(d ORDER BY d.upload_date DESC) FROM documents d WHERE d.employee_id = e.employee_id), '[]') AS documents_json
+       FROM employees e WHERE e.employee_id = $1`, [user.employee_id]);
         const payload = {
             id: user.id,
             employeeId: user.employee_id,
@@ -55,10 +59,13 @@ router.post('/register', async (req, res) => {
         if (existing.rows.length > 0) {
             return res.status(400).json({ message: 'User with this email or Employee ID already exists' });
         }
-        const userRole = role === 'Admin' ? 'Admin' : 'Employee';
+        // Public registration must never grant administrative privileges.
+        const userRole = 'Employee';
         const passwordHash = bcryptjs_1.default.hashSync(password, 10);
+        const verificationToken = crypto_1.default.randomBytes(32).toString('hex');
+        const verificationHash = crypto_1.default.createHash('sha256').update(verificationToken).digest('hex');
         // Insert user
-        const userResult = await db_1.pool.query('INSERT INTO users (employee_id, email, password_hash, role) VALUES ($1, $2, $3, $4) RETURNING *', [employeeId, email, passwordHash, userRole]);
+        const userResult = await db_1.pool.query('INSERT INTO users (employee_id, email, password_hash, role, email_verified, verification_token_hash, verification_expires_at) VALUES ($1, $2, $3, $4, FALSE, $5, NOW() + INTERVAL \'24 hours\') RETURNING *', [employeeId, email, passwordHash, userRole, verificationHash]);
         // Insert employee
         const empResult = await db_1.pool.query(`INSERT INTO employees (employee_id, name, email, role, designation, department, phone, address, manager_name)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`, [employeeId, name, email, userRole, designation || 'Software Engineer', department || 'Engineering', phone || '', address || '', 'Sarah Jenkins']);
@@ -69,15 +76,32 @@ router.post('/register', async (req, res) => {
             email: newUser.email,
             role: newUser.role,
         };
-        const token = jsonwebtoken_1.default.sign(payload, auth_1.JWT_SECRET, { expiresIn: '7d' });
         return res.status(201).json({
-            token,
-            user: payload,
-            employee: (0, db_1.mapEmployee)(empResult.rows[0]),
+            verificationRequired: true,
+            verificationToken,
+            message: 'Registration successful. Verify your email to activate your account.',
         });
     }
     catch (err) {
         console.error('Register error:', err);
+        return res.status(500).json({ message: 'Internal server error' });
+    }
+});
+// VERIFY EMAIL. In production, send verificationToken by email instead of exposing it in the response.
+router.post('/verify-email', async (req, res) => {
+    const { token } = req.body;
+    if (!token)
+        return res.status(400).json({ message: 'Verification token is required' });
+    const hash = crypto_1.default.createHash('sha256').update(token).digest('hex');
+    try {
+        const result = await db_1.pool.query(`UPDATE users SET email_verified = TRUE, verification_token_hash = NULL, verification_expires_at = NULL
+       WHERE verification_token_hash = $1 AND verification_expires_at > NOW() RETURNING email`, [hash]);
+        if (!result.rows.length)
+            return res.status(400).json({ message: 'Verification token is invalid or expired' });
+        return res.json({ message: 'Email verified successfully. You can now sign in.' });
+    }
+    catch (err) {
+        console.error('Verify email error:', err);
         return res.status(500).json({ message: 'Internal server error' });
     }
 });
@@ -86,7 +110,8 @@ router.get('/me', auth_1.authenticateToken, async (req, res) => {
     if (!req.user)
         return res.status(401).json({ message: 'Unauthorized' });
     try {
-        const empResult = await db_1.pool.query('SELECT * FROM employees WHERE employee_id = $1', [req.user.employeeId]);
+        const empResult = await db_1.pool.query(`SELECT e.*, COALESCE((SELECT json_agg(d ORDER BY d.upload_date DESC) FROM documents d WHERE d.employee_id = e.employee_id), '[]') AS documents_json
+       FROM employees e WHERE e.employee_id = $1`, [req.user.employeeId]);
         return res.json({
             user: req.user,
             employee: empResult.rows.length > 0 ? (0, db_1.mapEmployee)(empResult.rows[0]) : null,
@@ -104,8 +129,8 @@ router.put('/change-password', auth_1.authenticateToken, async (req, res) => {
         return res.status(401).json({ message: 'Unauthorized' });
     if (!currentPassword || !newPassword)
         return res.status(400).json({ message: 'Current and new passwords are required' });
-    if (newPassword.length < 4)
-        return res.status(400).json({ message: 'New password must be at least 4 characters' });
+    if (newPassword.length < 8)
+        return res.status(400).json({ message: 'New password must be at least 8 characters' });
     try {
         const userResult = await db_1.pool.query('SELECT * FROM users WHERE employee_id = $1', [req.user.employeeId]);
         if (userResult.rows.length === 0)

@@ -17,7 +17,7 @@ const AppContent: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center space-y-3">
+      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center space-y-3">
         <div className="animate-spin rounded-full h-8 w-8 border-2 border-indigo-200 border-t-indigo-600" />
         <p className="text-xs text-gray-400 font-medium">Loading Dayflow HRMS...</p>
       </div>
@@ -42,7 +42,7 @@ const AppContent: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900 flex flex-col font-sans">
+    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans">
       <Navbar activeTab={activeTab} setActiveTab={setActiveTab} />
       <div className="flex flex-1 overflow-hidden">
         <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />

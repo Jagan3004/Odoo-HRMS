@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 import { pool, mapEmployee } from '../db';
 import { JWT_SECRET, authenticateToken, AuthRequest } from '../middleware/auth';
 import { Role } from '../types';
+import crypto from 'crypto';
 
 const router = Router();
 
@@ -26,13 +27,15 @@ router.post('/login', async (req, res) => {
     }
 
     const user = userResult.rows[0];
+    if (user.email_verified === false) return res.status(403).json({ message: 'Please verify your email before signing in.', code: 'EMAIL_VERIFICATION_REQUIRED' });
     const isPasswordValid = bcrypt.compareSync(password, user.password_hash);
     if (!isPasswordValid) {
       return res.status(401).json({ message: 'Invalid credentials. Password incorrect.' });
     }
 
     const empResult = await pool.query(
-      'SELECT * FROM employees WHERE employee_id = $1',
+      `SELECT e.*, COALESCE((SELECT json_agg(d ORDER BY d.upload_date DESC) FROM documents d WHERE d.employee_id = e.employee_id), '[]') AS documents_json
+       FROM employees e WHERE e.employee_id = $1`,
       [user.employee_id]
     );
 
@@ -73,13 +76,16 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ message: 'User with this email or Employee ID already exists' });
     }
 
-    const userRole: Role = role === 'Admin' ? 'Admin' : 'Employee';
+    // Public registration must never grant administrative privileges.
+    const userRole: Role = 'Employee';
     const passwordHash = bcrypt.hashSync(password, 10);
+    const verificationToken = crypto.randomBytes(32).toString('hex');
+    const verificationHash = crypto.createHash('sha256').update(verificationToken).digest('hex');
 
     // Insert user
     const userResult = await pool.query(
-      'INSERT INTO users (employee_id, email, password_hash, role) VALUES ($1, $2, $3, $4) RETURNING *',
-      [employeeId, email, passwordHash, userRole]
+      'INSERT INTO users (employee_id, email, password_hash, role, email_verified, verification_token_hash, verification_expires_at) VALUES ($1, $2, $3, $4, FALSE, $5, NOW() + INTERVAL \'24 hours\') RETURNING *',
+      [employeeId, email, passwordHash, userRole, verificationHash]
     );
 
     // Insert employee
@@ -97,15 +103,31 @@ router.post('/register', async (req, res) => {
       role: newUser.role,
     };
 
-    const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' });
-
     return res.status(201).json({
-      token,
-      user: payload,
-      employee: mapEmployee(empResult.rows[0]),
+      verificationRequired: true,
+      verificationToken,
+      message: 'Registration successful. Verify your email to activate your account.',
     });
   } catch (err) {
     console.error('Register error:', err);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// VERIFY EMAIL. In production, send verificationToken by email instead of exposing it in the response.
+router.post('/verify-email', async (req, res) => {
+  const { token } = req.body;
+  if (!token) return res.status(400).json({ message: 'Verification token is required' });
+  const hash = crypto.createHash('sha256').update(token).digest('hex');
+  try {
+    const result = await pool.query(
+      `UPDATE users SET email_verified = TRUE, verification_token_hash = NULL, verification_expires_at = NULL
+       WHERE verification_token_hash = $1 AND verification_expires_at > NOW() RETURNING email`, [hash]
+    );
+    if (!result.rows.length) return res.status(400).json({ message: 'Verification token is invalid or expired' });
+    return res.json({ message: 'Email verified successfully. You can now sign in.' });
+  } catch (err) {
+    console.error('Verify email error:', err);
     return res.status(500).json({ message: 'Internal server error' });
   }
 });
@@ -116,7 +138,8 @@ router.get('/me', authenticateToken, async (req: AuthRequest, res: Response) => 
 
   try {
     const empResult = await pool.query(
-      'SELECT * FROM employees WHERE employee_id = $1',
+      `SELECT e.*, COALESCE((SELECT json_agg(d ORDER BY d.upload_date DESC) FROM documents d WHERE d.employee_id = e.employee_id), '[]') AS documents_json
+       FROM employees e WHERE e.employee_id = $1`,
       [req.user.employeeId]
     );
 
@@ -134,7 +157,7 @@ router.put('/change-password', authenticateToken, async (req: AuthRequest, res: 
   const { currentPassword, newPassword } = req.body;
   if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
   if (!currentPassword || !newPassword) return res.status(400).json({ message: 'Current and new passwords are required' });
-  if (newPassword.length < 4) return res.status(400).json({ message: 'New password must be at least 4 characters' });
+  if (newPassword.length < 8) return res.status(400).json({ message: 'New password must be at least 8 characters' });
 
   try {
     const userResult = await pool.query('SELECT * FROM users WHERE employee_id = $1', [req.user.employeeId]);

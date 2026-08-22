@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Bell, LogOut, User as UserIcon, Shield, ChevronDown, Check, Briefcase } from 'lucide-react';
+import { Bell, LogOut, User as UserIcon, Shield, ChevronDown, Check } from 'lucide-react';
 import { apiRequest } from '../api/client';
 import { AppNotification } from '../types';
+import { BrandLogo } from './BrandLogo';
 
 interface NavbarProps {
   activeTab: string;
@@ -41,13 +42,8 @@ export const Navbar: React.FC<NavbarProps> = ({ setActiveTab }) => {
     <header className="sticky top-0 z-30 bg-white border-b border-gray-200 px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between no-print">
       {/* Brand */}
       <div className="flex items-center space-x-3 cursor-pointer" onClick={() => setActiveTab('dashboard')}>
-        <div className="w-9 h-9 rounded-lg brand-gradient flex items-center justify-center shadow-sm">
-          <Briefcase className="w-5 h-5 text-white" />
-        </div>
-        <div className="hidden sm:block">
-          <span className="font-bold text-lg text-gray-900 tracking-tight">Dayflow</span>
-          <span className="text-[10px] px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-700 font-semibold ml-1.5 align-middle">HRMS</span>
-        </div>
+        <BrandLogo size="md" className="hidden sm:inline-flex" />
+        <BrandLogo size="sm" className="sm:hidden" />
       </div>
 
       {/* Right controls */}

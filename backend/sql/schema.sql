@@ -27,6 +27,9 @@ CREATE TABLE users (
     email           VARCHAR(255) UNIQUE NOT NULL,
     password_hash   VARCHAR(255) NOT NULL,
     role            VARCHAR(20) NOT NULL DEFAULT 'Employee' CHECK (role IN ('Admin', 'Employee')),
+    email_verified  BOOLEAN NOT NULL DEFAULT FALSE,
+    verification_token_hash TEXT,
+    verification_expires_at TIMESTAMP WITH TIME ZONE,
     created_at      TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
@@ -165,17 +168,13 @@ CREATE TABLE notifications (
 CREATE INDEX idx_notifications_user ON notifications(user_id);
 CREATE INDEX idx_notifications_read ON notifications(read);
 
--- ============================================================
--- SEED DATA
--- ============================================================
 
--- Users (password: admin123 / emp123 — bcrypt hashes)
-INSERT INTO users (employee_id, email, password_hash, role) VALUES
-    ('HR-001',  'admin@dayflow.com',         '$2b$10$0hAnqaJx0l.QKkH/A1F7SuAQpfl5HGKh1SaVSc7S0tvRv2xrmn3cy', 'Admin'),
-    ('EMP-101', 'employee@dayflow.com',       '$2b$10$4/iYhx35fCYZFeUpjDkCxeYRVBEmpOnlpuKg6aD1e.8ZzWVQ7oKBG', 'Employee'),
-    ('EMP-102', 'john.doe@dayflow.com',       '$2b$10$4/iYhx35fCYZFeUpjDkCxeYRVBEmpOnlpuKg6aD1e.8ZzWVQ7oKBG', 'Employee'),
-    ('EMP-103', 'emily.chen@dayflow.com',     '$2b$10$4/iYhx35fCYZFeUpjDkCxeYRVBEmpOnlpuKg6aD1e.8ZzWVQ7oKBG', 'Employee'),
-    ('EMP-104', 'david.miller@dayflow.com',   '$2b$10$4/iYhx35fCYZFeUpjDkCxeYRVBEmpOnlpuKg6aD1e.8ZzWVQ7oKBG', 'Employee');
+INSERT INTO users (employee_id, email, password_hash, role, email_verified) VALUES
+    ('HR-001',  'admin@dayflow.com',         '$2b$10$0hAnqaJx0l.QKkH/A1F7SuAQpfl5HGKh1SaVSc7S0tvRv2xrmn3cy', 'Admin', TRUE),
+    ('EMP-101', 'employee@dayflow.com',       '$2b$10$4/iYhx35fCYZFeUpjDkCxeYRVBEmpOnlpuKg6aD1e.8ZzWVQ7oKBG', 'Employee', TRUE),
+    ('EMP-102', 'john.doe@dayflow.com',       '$2b$10$4/iYhx35fCYZFeUpjDkCxeYRVBEmpOnlpuKg6aD1e.8ZzWVQ7oKBG', 'Employee', TRUE),
+    ('EMP-103', 'emily.chen@dayflow.com',     '$2b$10$4/iYhx35fCYZFeUpjDkCxeYRVBEmpOnlpuKg6aD1e.8ZzWVQ7oKBG', 'Employee', TRUE),
+    ('EMP-104', 'david.miller@dayflow.com',   '$2b$10$4/iYhx35fCYZFeUpjDkCxeYRVBEmpOnlpuKg6aD1e.8ZzWVQ7oKBG', 'Employee', TRUE);
 
 -- Employees
 INSERT INTO employees (employee_id, name, email, role, designation, department, joining_date, phone, address, emergency_contact, avatar_url, manager_name,

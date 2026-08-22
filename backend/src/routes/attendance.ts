@@ -112,6 +112,22 @@ router.get('/my', authenticateToken, async (req: AuthRequest, res: Response) => 
   }
 });
 
+// GET MY WEEKLY ATTENDANCE
+router.get('/weekly', authenticateToken, async (req: AuthRequest, res: Response) => {
+  const endDate = typeof req.query.endDate === 'string' ? req.query.endDate : new Date().toISOString().split('T')[0];
+  const start = new Date(`${endDate}T00:00:00Z`);
+  if (Number.isNaN(start.getTime())) return res.status(400).json({ message: 'Invalid end date' });
+  start.setUTCDate(start.getUTCDate() - 6);
+  const startDate = start.toISOString().split('T')[0];
+  try {
+    const result = await pool.query('SELECT * FROM attendance WHERE employee_id = $1 AND date BETWEEN $2 AND $3 ORDER BY date', [req.user?.employeeId, startDate, endDate]);
+    return res.json({ startDate, endDate, records: result.rows.map(mapAttendance) });
+  } catch (err) {
+    console.error('Get weekly attendance error:', err);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
 // ADMIN: GET ALL ATTENDANCE WITH EMPLOYEE NAMES
 router.get('/all', authenticateToken, requireRole('Admin'), async (req: AuthRequest, res: Response) => {
   try {

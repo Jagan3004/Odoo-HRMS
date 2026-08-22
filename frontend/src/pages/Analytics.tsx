@@ -27,7 +27,7 @@ export const Analytics: React.FC = () => {
     );
   }
 
-  const payrollByDept = stats.departmentBreakdown.map((d) => ({ name: d.name, amount: d.count * 8200 }));
+  const payrollByDept = stats.payrollByDepartment || [];
   const monthlyTrend = [{ month: 'Jan', cost: 38000 }, { month: 'Feb', cost: 39200 }, { month: 'Mar', cost: 40500 }, { month: 'Apr', cost: 41000 }, { month: 'May', cost: 42500 }, { month: 'Jun', cost: stats.totalMonthlyPayroll }];
 
   const tooltipStyle = { background: '#fff', border: '1px solid #e5e7eb', borderRadius: '8px', fontSize: '12px', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.05)' };
@@ -84,7 +84,7 @@ export const Analytics: React.FC = () => {
                 <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
                 <XAxis dataKey="month" stroke="#9ca3af" fontSize={11} tickLine={false} axisLine={false} />
                 <YAxis stroke="#9ca3af" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v: number) => `₹${(v / 1000).toFixed(0)}K`} />
-                <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => [`₹${v.toLocaleString()}`, 'Cost']} />
+                <Tooltip contentStyle={tooltipStyle} formatter={(value: unknown) => { const amount = Number(value ?? 0); return [`₹${amount.toLocaleString()}`, 'Cost']; }} />
                 <Line type="monotone" dataKey="cost" stroke="#4f46e5" strokeWidth={2.5} dot={{ fill: '#4f46e5', r: 4 }} activeDot={{ r: 6 }} />
               </LineChart>
             </ResponsiveContainer>
@@ -132,7 +132,7 @@ export const Analytics: React.FC = () => {
               <BarChart data={payrollByDept} layout="vertical">
                 <XAxis type="number" stroke="#9ca3af" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v: number) => `₹${(v / 1000).toFixed(0)}K`} />
                 <YAxis type="category" dataKey="name" stroke="#9ca3af" fontSize={11} tickLine={false} axisLine={false} width={80} />
-                <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => [`₹${v.toLocaleString()}`, 'Payroll']} />
+                <Tooltip contentStyle={tooltipStyle} formatter={(value: unknown) => { const amount = Number(value ?? 0); return [`₹${amount.toLocaleString()}`, 'Payroll']; }} />
                 <Bar dataKey="amount" fill="#7c3aed" radius={[0, 4, 4, 0]} />
               </BarChart>
             </ResponsiveContainer>

@@ -9,9 +9,9 @@ const db_1 = require("../db");
 const auth_1 = require("../middleware/auth");
 const router = (0, express_1.Router)();
 // GET all employees
-router.get('/', auth_1.authenticateToken, async (req, res) => {
+router.get('/', auth_1.authenticateToken, (0, auth_1.requireRole)('Admin'), async (req, res) => {
     try {
-        const result = await db_1.pool.query('SELECT * FROM employees ORDER BY name');
+        const result = await db_1.pool.query(`SELECT e.*, COALESCE((SELECT json_agg(d ORDER BY d.upload_date DESC) FROM documents d WHERE d.employee_id = e.employee_id), '[]') AS documents_json FROM employees e ORDER BY e.name`);
         return res.json(result.rows.map(db_1.mapEmployee));
     }
     catch (err) {
@@ -22,7 +22,8 @@ router.get('/', auth_1.authenticateToken, async (req, res) => {
 // GET single employee by ID
 router.get('/:id', auth_1.authenticateToken, async (req, res) => {
     try {
-        const result = await db_1.pool.query('SELECT * FROM employees WHERE id::text = $1 OR employee_id = $1', [req.params.id]);
+        const result = await db_1.pool.query(`SELECT e.*, COALESCE((SELECT json_agg(d ORDER BY d.upload_date DESC) FROM documents d WHERE d.employee_id = e.employee_id), '[]') AS documents_json
+       FROM employees e WHERE (e.id::text = $1 OR e.employee_id = $1) AND ($2 = 'Admin' OR e.employee_id = $3)`, [req.params.id, req.user?.role, req.user?.employeeId]);
         if (result.rows.length === 0) {
             return res.status(404).json({ message: 'Employee not found' });
         }

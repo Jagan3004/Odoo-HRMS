@@ -23,6 +23,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
   const navItems = allNavItems.filter((item) => item.roles.includes(user?.role || 'Employee'));
 
   return (
+    <>
     <aside className="w-60 bg-white border-r border-gray-200 p-3 flex flex-col justify-between hidden md:flex shrink-0 min-h-[calc(100vh-57px)] no-print">
       <div className="space-y-0.5">
         <div className="px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-gray-400">
@@ -55,5 +56,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
         </p>
       </div>
     </aside>
+    <nav className="md:hidden no-print flex overflow-x-auto border-b border-gray-200 bg-white px-2 py-2">
+      {navItems.map((item) => { const Icon = item.icon; return <button key={item.id} onClick={() => setActiveTab(item.id)} className={`mr-2 flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold ${activeTab === item.id ? 'bg-cyan-50 text-cyan-800' : 'text-slate-500 hover:bg-slate-50'}`}><Icon className="h-3.5 w-3.5" />{item.label}</button>; })}
+    </nav>
+    </>
   );
 };

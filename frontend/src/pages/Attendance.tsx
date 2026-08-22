@@ -7,6 +7,7 @@ import { Clock, Play, Square, Calendar, Filter, Edit2, Search } from 'lucide-rea
 export const Attendance: React.FC = () => {
   const { user, refreshProfile } = useAuth();
   const [myAttendance, setMyAttendance] = useState<AttendanceRecord[]>([]);
+  const [weekEnd, setWeekEnd] = useState(new Date().toISOString().split('T')[0]);
   const [allAttendance, setAllAttendance] = useState<AttendanceRecord[]>([]);
   const [todayRecord, setTodayRecord] = useState<AttendanceRecord | null>(null);
   const [loading, setLoading] = useState(true);
@@ -17,15 +18,17 @@ export const Attendance: React.FC = () => {
   const [editingRecord, setEditingRecord] = useState<AttendanceRecord | null>(null);
   const [editStatus, setEditStatus] = useState<string>('Present');
   const [editNotes, setEditNotes] = useState('');
+  const [weeklyRecords, setWeeklyRecords] = useState<AttendanceRecord[]>([]);
 
   const fetchData = async () => {
     try {
       const t = await apiRequest('/attendance/today'); setTodayRecord(t.record);
       const m = await apiRequest<AttendanceRecord[]>('/attendance/my'); setMyAttendance(m);
+      if (user?.role !== 'Admin') { const week = await apiRequest<{ records: AttendanceRecord[] }>(`/attendance/weekly?endDate=${weekEnd}`); setWeeklyRecords(week.records); }
       if (user?.role === 'Admin') { const a = await apiRequest<AttendanceRecord[]>('/attendance/all'); setAllAttendance(a); }
     } catch (err) { console.error(err); } finally { setLoading(false); }
   };
-  useEffect(() => { fetchData(); }, [user]);
+  useEffect(() => { fetchData(); }, [user, weekEnd]);
 
   const handleCheckIn = async () => { setClockActionLoading(true); setActionMessage(null); try { await apiRequest('/attendance/check-in', 'POST'); setActionMessage('Checked in!'); await fetchData(); await refreshProfile(); } catch (err: any) { setActionMessage(err.message); } finally { setClockActionLoading(false); } };
   const handleCheckOut = async () => { setClockActionLoading(true); setActionMessage(null); try { await apiRequest('/attendance/check-out', 'POST'); setActionMessage('Checked out!'); await fetchData(); await refreshProfile(); } catch (err: any) { setActionMessage(err.message); } finally { setClockActionLoading(false); } };
@@ -65,6 +68,8 @@ export const Attendance: React.FC = () => {
         </div>
       </div>
       {actionMessage && <div className="p-3 rounded-lg bg-indigo-50 border border-indigo-100 text-indigo-700 text-xs font-medium text-center">{actionMessage}</div>}
+
+      {user?.role !== 'Admin' && <div className="panel-elevated rounded-xl overflow-hidden"><div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between"><h3 className="font-semibold text-sm text-gray-800">Weekly view</h3><input type="date" value={weekEnd} onChange={(e) => setWeekEnd(e.target.value)} className="px-2 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs" /></div><div className="grid grid-cols-2 gap-3 p-4 sm:grid-cols-4 lg:grid-cols-7">{weeklyRecords.map((record) => <div key={record.id} className="rounded-lg border border-gray-100 bg-gray-50 p-3"><p className="text-[10px] font-semibold text-gray-400">{record.date}</p><p className="mt-2 text-xs font-bold text-gray-800">{record.status}</p><p className="mt-1 text-[10px] text-gray-500">{record.totalHours ? `${record.totalHours}h` : 'No hours'}</p></div>)}{weeklyRecords.length === 0 && <p className="col-span-full py-4 text-center text-xs text-gray-400">No attendance records for this week.</p>}</div></div>}
 
       {/* My Attendance */}
       <div className="panel-elevated rounded-xl overflow-hidden">

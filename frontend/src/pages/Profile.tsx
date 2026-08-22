@@ -1,318 +1,149 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useAuth } from '../context/AuthContext';
+import React, { useEffect, useState } from 'react';
+import { BriefcaseBusiness, CalendarDays, FileText, KeyRound, Mail, MapPin, Pencil, Phone, Save, ShieldCheck, Trash2, Upload, UserRound } from 'lucide-react';
 import { apiRequest } from '../api/client';
-import { UserCheck, Mail, Phone, Building, Briefcase, Calendar, MapPin, Save, Key, Shield, CreditCard, Camera, FileText, Upload, Trash2, Download } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import { Employee } from '../types';
+import { Avatar, PageHeader, SectionCard, StatusBadge } from '../components/UiPrimitives';
 
-const API_BASE = 'http://localhost:5000';
-
-interface Doc {
-  id: string;
+interface ProfileForm {
   name: string;
-  type: string;
-  url: string;
-  uploadDate: string;
+  designation: string;
+  department: string;
+  phone: string;
+  address: string;
+  emergencyContact: string;
+  managerName: string;
 }
 
+const emptyForm: ProfileForm = {
+  name: '', designation: '', department: '', phone: '', address: '', emergencyContact: '', managerName: '',
+};
+
+const formatDate = (value: string) => value ? new Date(value).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : 'Not provided';
+const money = (value: number) => `Rs. ${value.toLocaleString('en-IN')}`;
+
 export const Profile: React.FC = () => {
-  const { user, employee, token, refreshProfile } = useAuth();
-  const [editing, setEditing] = useState(false);
-  const [phone, setPhone] = useState(employee?.phone || '');
-  const [address, setAddress] = useState(employee?.address || '');
+  const { user, employee, refreshProfile } = useAuth();
+  const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [showPasswordForm, setShowPasswordForm] = useState(false);
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [passwordMsg, setPasswordMsg] = useState<string | null>(null);
-
-  // Avatar
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [avatarUploading, setAvatarUploading] = useState(false);
-
-  // Documents
-  const [documents, setDocuments] = useState<Doc[]>([]);
-  const [docUploading, setDocUploading] = useState(false);
-  const [docName, setDocName] = useState('');
-  const [docType, setDocType] = useState('ID Proof');
-  const docInputRef = useRef<HTMLInputElement>(null);
+  const [message, setMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [form, setForm] = useState<ProfileForm>(emptyForm);
+  const [uploading, setUploading] = useState(false);
+  const [passwords, setPasswords] = useState({ currentPassword: '', newPassword: '' });
+  const [passwordMessage, setPasswordMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchDocuments();
-  }, []);
+    if (employee) {
+      setForm({
+        name: employee.name,
+        designation: employee.designation,
+        department: employee.department,
+        phone: employee.phone || '',
+        address: employee.address || '',
+        emergencyContact: employee.emergencyContact || '',
+        managerName: employee.managerName || '',
+      });
+    }
+  }, [employee]);
 
-  const fetchDocuments = async () => {
-    try {
-      const res = await apiRequest<Doc[]>('/uploads/documents');
-      setDocuments(res);
-    } catch (err) { console.error(err); }
-  };
+  if (!employee) return <div className="surface-card p-8 text-sm text-slate-500">Profile details are not available.</div>;
 
-  const handleSave = async () => {
+  const isAdmin = user?.role === 'Admin';
+  const updateField = (field: keyof ProfileForm, value: string) => setForm((current) => ({ ...current, [field]: value }));
+
+  const saveProfile = async (event: React.FormEvent) => {
+    event.preventDefault();
     setSaving(true);
-    try { await apiRequest(`/employees/${employee?.id}`, 'PUT', { phone, address }); await refreshProfile(); setEditing(false); } catch (err: any) { alert(err.message); }
-    finally { setSaving(false); }
-  };
-
-  const handlePasswordChange = async (e: React.FormEvent) => {
-    e.preventDefault(); setPasswordMsg(null);
-    try { await apiRequest('/auth/change-password', 'PUT', { currentPassword, newPassword }); setPasswordMsg('Password updated successfully.'); setCurrentPassword(''); setNewPassword(''); setShowPasswordForm(false); } catch (err: any) { setPasswordMsg(err.message); }
-  };
-
-  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setAvatarUploading(true);
+    setMessage(null);
+    setError(null);
     try {
-      const formData = new FormData();
-      formData.append('avatar', file);
-      const res = await fetch(`${API_BASE}/api/uploads/avatar`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-        body: formData,
-      });
-      if (!res.ok) { const err = await res.json(); throw new Error(err.message); }
+      await apiRequest<Employee>(`/employees/${employee.employeeId}`, 'PUT', form);
       await refreshProfile();
-    } catch (err: any) { alert(err.message || 'Upload failed'); }
-    finally { setAvatarUploading(false); if (fileInputRef.current) fileInputRef.current.value = ''; }
+      setIsEditing(false);
+      setMessage('Profile updated successfully.');
+    } catch (err: any) {
+      setError(err.message || 'Unable to update profile.');
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const handleDocUpload = async () => {
-    const file = docInputRef.current?.files?.[0];
-    if (!file) return;
-    setDocUploading(true);
-    try {
-      const formData = new FormData();
-      formData.append('document', file);
-      formData.append('docName', docName || file.name);
-      formData.append('docType', docType);
-      const res = await fetch(`${API_BASE}/api/uploads/document`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-        body: formData,
-      });
-      if (!res.ok) { const err = await res.json(); throw new Error(err.message); }
-      await fetchDocuments();
-      setDocName('');
-      if (docInputRef.current) docInputRef.current.value = '';
-    } catch (err: any) { alert(err.message || 'Upload failed'); }
-    finally { setDocUploading(false); }
+  const uploadAvatar = async (file: File) => {
+    setUploading(true); setError(null);
+    try { const data = new FormData(); data.append('avatar', file); await apiRequest('/uploads/avatar', 'POST', data); await refreshProfile(); setMessage('Profile picture updated.'); } catch (err: any) { setError(err.message || 'Unable to upload profile picture.'); } finally { setUploading(false); }
   };
 
-  const handleDocDelete = async (id: string) => {
-    if (!confirm('Delete this document?')) return;
-    try { await apiRequest(`/uploads/document/${id}`, 'DELETE'); await fetchDocuments(); } catch (err: any) { alert(err.message); }
+  const uploadDocument = async (file: File) => {
+    setUploading(true); setError(null);
+    try { const data = new FormData(); data.append('document', file); data.append('docName', file.name); data.append('docType', 'HR document'); await apiRequest('/uploads/document', 'POST', data); await refreshProfile(); setMessage('Document uploaded.'); } catch (err: any) { setError(err.message || 'Unable to upload document.'); } finally { setUploading(false); }
   };
 
-  if (!employee) return <div className="flex items-center justify-center min-h-[400px]"><div className="animate-spin rounded-full h-8 w-8 border-2 border-indigo-200 border-t-indigo-600" /></div>;
+  const deleteDocument = async (id: string) => {
+    try { await apiRequest(`/uploads/document/${id}`, 'DELETE'); await refreshProfile(); setMessage('Document removed.'); } catch (err: any) { setError(err.message || 'Unable to remove document.'); }
+  };
 
-  const sal = employee.salaryStructure;
-  const avatarSrc = employee.avatarUrl ? `${API_BASE}${employee.avatarUrl}` : null;
+  const changePassword = async (event: React.FormEvent) => {
+    event.preventDefault(); setPasswordMessage(null); setError(null);
+    try { const response = await apiRequest<{ message: string }>('/auth/change-password', 'PUT', passwords); setPasswordMessage(response.message); setPasswords({ currentPassword: '', newPassword: '' }); } catch (err: any) { setError(err.message || 'Unable to change password.'); }
+  };
+
+  const field = (label: string, value: string, key: keyof ProfileForm, editable = true) => (
+    <label className="block">
+      <span className="mb-1.5 block text-[11px] font-bold uppercase tracking-[0.1em] text-slate-400">{label}</span>
+      {isEditing && editable ? (
+        <input value={value} onChange={(event) => updateField(key, event.target.value)} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none transition focus:border-cyan-500 focus:ring-4 focus:ring-cyan-500/10" />
+      ) : <span className="block min-h-[20px] text-sm font-semibold text-slate-800">{value || 'Not provided'}</span>}
+    </label>
+  );
 
   return (
-    <div className="space-y-6 max-w-4xl">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2"><UserCheck className="w-6 h-6 text-indigo-600" /> My Profile</h1>
-        <p className="text-sm text-gray-500 mt-1">View and update your personal information.</p>
-      </div>
-
-      {/* Profile Card */}
-      <div className="panel-elevated rounded-xl p-6">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5">
-          {/* Avatar */}
-          <div className="relative group shrink-0">
-            {avatarSrc ? (
-              <img src={avatarSrc} alt={employee.name} className="w-16 h-16 rounded-xl object-cover border-2 border-indigo-100" />
-            ) : (
-              <div className="w-16 h-16 rounded-xl bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-2xl border border-indigo-200">
-                {employee.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
-              </div>
-            )}
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              disabled={avatarUploading}
-              className="absolute -bottom-1 -right-1 w-7 h-7 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg flex items-center justify-center shadow-md transition-all opacity-0 group-hover:opacity-100"
-              title="Change photo"
-            >
-              {avatarUploading ? <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Camera className="w-3.5 h-3.5" />}
-            </button>
-            <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
-          </div>
-
-          <div className="flex-1">
-            <div className="flex items-center gap-2 flex-wrap">
-              <h2 className="text-xl font-bold text-gray-900">{employee.name}</h2>
-              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${user?.role === 'Admin' ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-indigo-50 text-indigo-600 border-indigo-100'}`}>
-                {user?.role}
-              </span>
-            </div>
-            <p className="text-sm text-gray-500 mt-0.5">{employee.designation} · {employee.department}</p>
-            <p className="text-xs text-gray-400 font-mono mt-0.5">{employee.employeeId}</p>
-          </div>
-          {!editing ? (
-            <button onClick={() => { setEditing(true); setPhone(employee.phone); setAddress(employee.address); }}
-              className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold text-xs rounded-lg transition-all border border-gray-200">
-              Edit Profile
-            </button>
-          ) : (
-            <div className="flex items-center space-x-2">
-              <button onClick={() => setEditing(false)} className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 text-xs rounded-lg border border-gray-200">Cancel</button>
-              <button onClick={handleSave} disabled={saving} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-lg shadow-sm flex items-center space-x-1.5 disabled:opacity-50">
-                <Save className="w-3.5 h-3.5" /><span>Save</span>
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Details Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Personal Info */}
-        <div className="panel-elevated rounded-xl p-6">
-          <h3 className="font-semibold text-sm text-gray-900 mb-4 flex items-center gap-2"><Shield className="w-4 h-4 text-indigo-500" /> Personal Information</h3>
-          <div className="space-y-4 text-xs">
-            <div className="flex items-start gap-3">
-              <Mail className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
-              <div><p className="text-[10px] text-gray-400 uppercase font-semibold">Email</p><p className="text-sm text-gray-800 mt-0.5">{employee.email}</p></div>
-            </div>
-            <div className="flex items-start gap-3">
-              <Phone className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
-              <div>
-                <p className="text-[10px] text-gray-400 uppercase font-semibold">Phone</p>
-                {editing ? (
-                  <input type="text" value={phone} onChange={(e) => setPhone(e.target.value)} className="mt-0.5 w-full px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-800 focus:outline-none focus:border-indigo-400" />
-                ) : <p className="text-sm text-gray-800 mt-0.5">{employee.phone || 'Not set'}</p>}
-              </div>
-            </div>
-            <div className="flex items-start gap-3">
-              <MapPin className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
-              <div>
-                <p className="text-[10px] text-gray-400 uppercase font-semibold">Address</p>
-                {editing ? (
-                  <input type="text" value={address} onChange={(e) => setAddress(e.target.value)} className="mt-0.5 w-full px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-800 focus:outline-none focus:border-indigo-400" />
-                ) : <p className="text-sm text-gray-800 mt-0.5">{employee.address || 'Not set'}</p>}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Employment Info */}
-        <div className="panel-elevated rounded-xl p-6">
-          <h3 className="font-semibold text-sm text-gray-900 mb-4 flex items-center gap-2"><Briefcase className="w-4 h-4 text-purple-500" /> Employment Details</h3>
-          <div className="space-y-4 text-xs">
-            <div className="flex items-start gap-3"><Building className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" /><div><p className="text-[10px] text-gray-400 uppercase font-semibold">Department</p><p className="text-sm text-gray-800 mt-0.5">{employee.department}</p></div></div>
-            <div className="flex items-start gap-3"><Briefcase className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" /><div><p className="text-[10px] text-gray-400 uppercase font-semibold">Designation</p><p className="text-sm text-gray-800 mt-0.5">{employee.designation}</p></div></div>
-            <div className="flex items-start gap-3"><Calendar className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" /><div><p className="text-[10px] text-gray-400 uppercase font-semibold">Joining Date</p><p className="text-sm text-gray-800 mt-0.5">{employee.joiningDate}</p></div></div>
-          </div>
-        </div>
-      </div>
-
-      {/* Salary Overview */}
-      <div className="panel-elevated rounded-xl p-6">
-        <h3 className="font-semibold text-sm text-gray-900 mb-4 flex items-center gap-2"><CreditCard className="w-4 h-4 text-green-500" /> Compensation Summary</h3>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          {[
-            { label: 'Basic', value: sal.basic },
-            { label: 'HRA', value: sal.hra },
-            { label: 'Gross Pay', value: sal.grossSalary },
-            { label: 'Net Pay', value: sal.netSalary },
-          ].map((s) => (
-            <div key={s.label} className="text-center p-4 bg-gray-50 rounded-lg border border-gray-200">
-              <p className="text-xs text-gray-500">{s.label}</p>
-              <p className="text-lg font-bold text-gray-900 mt-1 font-mono">₹{s.value.toLocaleString()}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Documents */}
-      <div className="panel-elevated rounded-xl p-6">
-        <h3 className="font-semibold text-sm text-gray-900 mb-4 flex items-center gap-2"><FileText className="w-4 h-4 text-blue-500" /> Documents</h3>
-
-        {/* Upload Form */}
-        <div className="flex flex-wrap items-end gap-3 mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
-          <div className="flex-1 min-w-[150px]">
-            <label className="block text-[10px] text-gray-500 font-semibold mb-1">DOCUMENT NAME</label>
-            <input type="text" placeholder="e.g. Aadhar Card" value={docName} onChange={(e) => setDocName(e.target.value)}
-              className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-xs text-gray-800 focus:outline-none focus:border-indigo-400" />
-          </div>
-          <div className="w-32">
-            <label className="block text-[10px] text-gray-500 font-semibold mb-1">TYPE</label>
-            <select value={docType} onChange={(e) => setDocType(e.target.value)}
-              className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-xs text-gray-800 focus:outline-none focus:border-indigo-400">
-              <option>ID Proof</option>
-              <option>Address Proof</option>
-              <option>Offer Letter</option>
-              <option>Resume</option>
-              <option>Certificate</option>
-              <option>Other</option>
-            </select>
-          </div>
-          <div>
-            <input ref={docInputRef} type="file" className="hidden" onChange={() => {}} />
-            <button onClick={() => docInputRef.current?.click()}
-              className="px-3 py-2 bg-white border border-gray-200 rounded-lg text-xs text-gray-600 hover:bg-gray-100 transition-colors flex items-center gap-1.5">
-              <Upload className="w-3.5 h-3.5" /> Choose File
-            </button>
-          </div>
-          <button onClick={handleDocUpload} disabled={docUploading}
-            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-lg shadow-sm flex items-center gap-1.5 disabled:opacity-50">
-            {docUploading ? 'Uploading...' : <><Upload className="w-3.5 h-3.5" /> Upload</>}
-          </button>
-        </div>
-
-        {/* Document List */}
-        {documents.length === 0 ? (
-          <p className="text-xs text-gray-400 text-center py-6">No documents uploaded yet.</p>
+    <div className="space-y-6">
+      <PageHeader
+        eyebrow="People / My workspace"
+        title="My profile"
+        description="Keep your employee details current and easy for your HR team to trust."
+        icon={UserRound}
+        actions={isEditing ? (
+          <button onClick={() => { setIsEditing(false); setError(null); }} className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-bold text-slate-600 transition hover:bg-slate-50">Cancel</button>
         ) : (
-          <div className="divide-y divide-gray-100">
-            {documents.map((doc) => (
-              <div key={doc.id} className="flex items-center justify-between py-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center border border-blue-100">
-                    <FileText className="w-4 h-4 text-blue-500" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-800">{doc.name}</p>
-                    <p className="text-[10px] text-gray-400">{doc.type} · Uploaded {doc.uploadDate}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <a href={`${API_BASE}${doc.url}`} target="_blank" rel="noopener noreferrer"
-                    className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors" title="Download">
-                    <Download className="w-4 h-4" />
-                  </a>
-                  <button onClick={() => handleDocDelete(doc.id)}
-                    className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors" title="Delete">
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
+          <button onClick={() => { setIsEditing(true); setMessage(null); }} className="inline-flex items-center gap-2 rounded-xl bg-slate-950 px-4 py-2.5 text-xs font-bold text-white transition hover:bg-cyan-700"><Pencil className="h-3.5 w-3.5" /> Edit profile</button>
         )}
-      </div>
+      />
 
-      {/* Change Password */}
-      <div className="panel-elevated rounded-xl p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold text-sm text-gray-900 flex items-center gap-2"><Key className="w-4 h-4 text-amber-500" /> Security</h3>
-          {!showPasswordForm && (
-            <button onClick={() => setShowPasswordForm(true)} className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-medium rounded-lg border border-gray-200 transition-colors">
-              Change Password
-            </button>
-          )}
-        </div>
-        {passwordMsg && <div className={`mb-3 p-3 rounded-lg text-xs font-medium ${passwordMsg.includes('success') ? 'bg-green-50 border border-green-200 text-green-700' : 'bg-red-50 border border-red-200 text-red-700'}`}>{passwordMsg}</div>}
-        {showPasswordForm && (
-          <form onSubmit={handlePasswordChange} className="space-y-3 text-xs max-w-sm">
-            <div><label className="block text-gray-600 font-medium mb-1">Current Password</label><input type="password" required value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-gray-800 focus:outline-none focus:border-indigo-400" /></div>
-            <div><label className="block text-gray-600 font-medium mb-1">New Password</label><input type="password" required minLength={4} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-gray-800 focus:outline-none focus:border-indigo-400" /></div>
-            <div className="flex items-center space-x-2 pt-1">
-              <button type="button" onClick={() => setShowPasswordForm(false)} className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg">Cancel</button>
-              <button type="submit" className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg shadow-sm">Update Password</button>
+      {(message || error) && <div className={`rounded-xl border px-4 py-3 text-sm font-medium ${error ? 'border-rose-200 bg-rose-50 text-rose-700' : 'border-emerald-200 bg-emerald-50 text-emerald-700'}`}>{error || message}</div>}
+
+      <div className="space-y-6">
+        <SectionCard className="overflow-hidden">
+          <div className="flex flex-col gap-5 bg-gradient-to-r from-cyan-50 via-white to-blue-50 px-5 py-6 sm:flex-row sm:items-center sm:px-6">
+            <div className="relative"><Avatar name={employee.name} src={employee.avatarUrl} size="lg" /><label className="absolute -bottom-1 -right-1 cursor-pointer rounded-lg bg-slate-950 p-2 text-white shadow hover:bg-cyan-700"><Upload className="h-3.5 w-3.5" /><input type="file" accept="image/*" className="hidden" disabled={uploading} onChange={(event) => event.target.files?.[0] && uploadAvatar(event.target.files[0])} /></label></div>
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2"><h2 className="text-xl font-extrabold text-slate-950">{employee.name}</h2><StatusBadge label={employee.role} tone={isAdmin ? 'warning' : 'brand'} /></div>
+              <p className="mt-1 text-sm text-slate-500">{employee.designation} <span className="px-1 text-slate-300">/</span> {employee.department}</p>
+              <p className="mt-2 text-xs font-semibold text-slate-400">Employee ID: {employee.employeeId}</p>
             </div>
-          </form>
-        )}
-        {!showPasswordForm && !passwordMsg && <p className="text-xs text-gray-400">Manage your account security settings.</p>}
+            <div className="flex items-center gap-2 text-xs font-semibold text-emerald-700"><ShieldCheck className="h-4 w-4" /> Active account</div>
+          </div>
+          <div className="grid gap-5 px-5 py-6 sm:grid-cols-2 sm:px-6">{field('Email address', employee.email, 'name', false)}{field('Joining date', formatDate(employee.joiningDate), 'name', false)}{field('Phone number', form.phone, 'phone')}{field('Emergency contact', form.emergencyContact, 'emergencyContact')}{field('Address', form.address, 'address')}</div>
+        </SectionCard>
+
+        <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
+          <SectionCard title="Job information" description={isAdmin ? 'Admin access allows editing organisational details.' : 'These details are managed by your HR administrator.'}>
+            <div className="grid gap-5 px-5 py-6 sm:grid-cols-2 sm:px-6">{field('Full name', form.name, 'name', isAdmin)}{field('Designation', form.designation, 'designation', isAdmin)}{field('Department', form.department, 'department', isAdmin)}{field('Reports to', form.managerName, 'managerName', isAdmin)}</div>
+          </SectionCard>
+
+          <SectionCard title="Salary overview" description="Payroll information is read-only from your profile.">
+            <div className="space-y-4 px-5 py-6 sm:px-6"><div className="flex items-center gap-3"><div className="rounded-xl bg-emerald-50 p-2.5 text-emerald-700"><BriefcaseBusiness className="h-4 w-4" /></div><div><p className="text-xs text-slate-500">Monthly gross salary</p><p className="text-lg font-extrabold text-slate-950">{money(employee.salaryStructure.grossSalary)}</p></div></div><div className="grid grid-cols-2 gap-3 border-t border-slate-100 pt-4"><div><p className="text-[11px] text-slate-400">Basic</p><p className="mt-1 text-sm font-bold text-slate-700">{money(employee.salaryStructure.basic)}</p></div><div><p className="text-[11px] text-slate-400">Net pay</p><p className="mt-1 text-sm font-bold text-slate-700">{money(employee.salaryStructure.netSalary)}</p></div></div></div>
+          </SectionCard>
+        </div>
+
+        <SectionCard title="Documents & contact" description="Your uploaded HR records and primary contact details.">
+          <div className="grid gap-4 px-5 py-6 sm:grid-cols-2 sm:px-6">{employee.documents.length ? employee.documents.map((document) => <div key={document.id} className="flex items-center gap-3 rounded-xl border border-slate-100 bg-slate-50 px-4 py-3"><FileText className="h-5 w-5 text-cyan-700" /><a href={document.url} target="_blank" rel="noreferrer" className="min-w-0 flex-1"><span className="block truncate text-sm font-bold text-slate-800">{document.name}</span><span className="text-[11px] text-slate-400">{document.type} / {formatDate(document.uploadDate)}</span></a><button type="button" onClick={() => deleteDocument(document.id)} className="rounded-lg p-2 text-slate-400 hover:bg-rose-50 hover:text-rose-600"><Trash2 className="h-4 w-4" /></button></div>) : <p className="text-sm text-slate-500">No documents uploaded yet.</p>}<label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-cyan-200 bg-cyan-50/50 px-4 py-3 text-xs font-bold text-cyan-800 hover:bg-cyan-50"><Upload className="h-4 w-4" /> Upload document<input type="file" className="hidden" disabled={uploading} onChange={(event) => event.target.files?.[0] && uploadDocument(event.target.files[0])} /></label><div className="grid gap-4 sm:col-span-2 sm:grid-cols-2"><div className="flex items-center gap-3 text-sm text-slate-600"><Mail className="h-4 w-4 text-slate-400" /> {employee.email}</div><div className="flex items-center gap-3 text-sm text-slate-600"><Phone className="h-4 w-4 text-slate-400" /> {employee.phone || 'No phone number'}</div><div className="flex items-center gap-3 text-sm text-slate-600"><MapPin className="h-4 w-4 text-slate-400" /> {employee.address || 'No address'}</div><div className="flex items-center gap-3 text-sm text-slate-600"><CalendarDays className="h-4 w-4 text-slate-400" /> Joined {formatDate(employee.joiningDate)}</div></div></div>
+        </SectionCard>
+
+        <SectionCard title="Account security" description="Change your password without leaving Dayflow."><form onSubmit={changePassword} className="grid gap-4 px-5 py-6 sm:grid-cols-3 sm:px-6"><input required type="password" placeholder="Current password" value={passwords.currentPassword} onChange={(event) => setPasswords({ ...passwords, currentPassword: event.target.value })} className="input-field" /><input required minLength={8} type="password" placeholder="New password" value={passwords.newPassword} onChange={(event) => setPasswords({ ...passwords, newPassword: event.target.value })} className="input-field" /><button type="submit" className="primary-button"><KeyRound className="h-3.5 w-3.5" /> Update password</button>{passwordMessage && <p className="text-xs font-semibold text-emerald-700 sm:col-span-3">{passwordMessage}</p>}</form></SectionCard>
+
+        {isEditing && <div className="flex justify-end"><button type="button" onClick={() => saveProfile({ preventDefault: () => {} } as React.FormEvent)} disabled={saving} className="inline-flex items-center gap-2 rounded-xl bg-cyan-700 px-5 py-3 text-xs font-bold text-white transition hover:bg-cyan-800 disabled:cursor-not-allowed disabled:opacity-60">{saving ? 'Saving...' : <><Save className="h-4 w-4" /> Save changes</>}</button></div>}
       </div>
     </div>
   );

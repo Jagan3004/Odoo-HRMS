@@ -48,6 +48,13 @@ const docStorage = multer_1.default.diskStorage({
 const docUpload = (0, multer_1.default)({
     storage: docStorage,
     limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
+    fileFilter: (_req, file, cb) => {
+        const allowed = ['.pdf', '.doc', '.docx', '.jpg', '.jpeg', '.png'];
+        if (allowed.includes(path_1.default.extname(file.originalname).toLowerCase()))
+            cb(null, true);
+        else
+            cb(new Error('Only PDF, Word, and image documents are allowed'));
+    },
 });
 // ============================
 // AVATAR UPLOAD

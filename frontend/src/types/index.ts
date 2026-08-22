@@ -104,6 +104,7 @@ export interface AdminStats {
   pendingLeaveRequests: number;
   totalMonthlyPayroll: number;
   departmentBreakdown: { name: string; count: number }[];
+  payrollByDepartment?: { name: string; amount: number }[];
   attendanceTrend: { date: string; fullDate: string; Present: number; Leave: number; Absent: number }[];
 }
 

@@ -32,6 +32,8 @@ router.get('/dashboard', auth_1.authenticateToken, async (req, res) => {
             name: r.name,
             count: parseInt(r.count),
         }));
+        const payrollDeptResult = await db_1.pool.query('SELECT department AS name, COALESCE(SUM(salary_net), 0) AS amount FROM employees GROUP BY department ORDER BY amount DESC');
+        const payrollByDepartment = payrollDeptResult.rows.map((r) => ({ name: r.name, amount: Number(r.amount) }));
         // Weekly attendance trend (past 7 days)
         const attendanceTrend = [];
         const todayDate = new Date();
@@ -55,7 +57,8 @@ router.get('/dashboard', auth_1.authenticateToken, async (req, res) => {
             });
         }
         // Current employee specific
-        const currentEmpResult = await db_1.pool.query('SELECT * FROM employees WHERE employee_id = $1', [user.employeeId]);
+        const currentEmpResult = await db_1.pool.query(`SELECT e.*, COALESCE((SELECT json_agg(d ORDER BY d.upload_date DESC) FROM documents d WHERE d.employee_id = e.employee_id), '[]') AS documents_json
+       FROM employees e WHERE e.employee_id = $1`, [user.employeeId]);
         const currentEmp = currentEmpResult.rows.length > 0 ? (0, db_1.mapEmployee)(currentEmpResult.rows[0]) : null;
         const userAttResult = await db_1.pool.query('SELECT * FROM attendance WHERE employee_id = $1 AND date = CURRENT_DATE', [user.employeeId]);
         const userAttendanceToday = userAttResult.rows.length > 0 ? (0, db_1.mapAttendance)(userAttResult.rows[0]) : null;
@@ -68,6 +71,7 @@ router.get('/dashboard', auth_1.authenticateToken, async (req, res) => {
                 pendingLeaveRequests,
                 totalMonthlyPayroll,
                 departmentBreakdown,
+                payrollByDepartment,
                 attendanceTrend,
             },
             employeeStats: {
@@ -90,7 +94,7 @@ router.get('/notifications', auth_1.authenticateToken, async (req, res) => {
         let result;
         if (user?.role === 'Admin') {
             result = await db_1.pool.query(`SELECT * FROM notifications
-         WHERE user_id = 'ALL' OR user_id = $1 OR user_id = 'HR-001'
+         WHERE user_id = 'ALL' OR user_id = $1
          ORDER BY created_at DESC LIMIT 50`, [user.employeeId]);
         }
         else {

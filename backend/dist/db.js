@@ -68,7 +68,15 @@ function mapEmployee(row) {
             grossSalary: Number(row.salary_gross),
             netSalary: Number(row.salary_net),
         },
-        documents: [],
+        documents: Array.isArray(row.documents_json)
+            ? row.documents_json.map((document) => ({
+                id: document.id,
+                name: document.name,
+                type: document.type,
+                url: document.file_url,
+                uploadDate: document.upload_date instanceof Date ? document.upload_date.toISOString().split('T')[0] : document.upload_date,
+            }))
+            : [],
         leaveBalance: {
             paidLeave: row.leave_paid,
             sickLeave: row.leave_sick,

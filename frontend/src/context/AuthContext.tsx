@@ -8,7 +8,7 @@ interface AuthContextType {
   token: string | null;
   loading: boolean;
   login: (email: string, pass: string) => Promise<void>;
-  register: (data: any) => Promise<void>;
+  register: (data: any) => Promise<any>;
   logout: () => void;
   demoLogin: (role: 'Admin' | 'Employee') => Promise<void>;
   refreshProfile: () => Promise<void>;
@@ -52,10 +52,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const register = async (formData: any) => {
     const res = await apiRequest('/auth/register', 'POST', formData);
+    if (!res.token) return res;
     localStorage.setItem('dayflow_token', res.token);
     setToken(res.token);
     setUser(res.user);
     setEmployee(res.employee);
+    return res;
   };
 
   const logout = () => {

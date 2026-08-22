@@ -6,9 +6,8 @@ export async function apiRequest<T = any>(
   data?: any,
   token?: string | null
 ): Promise<T> {
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-  };
+  const headers: Record<string, string> = {};
+  if (!(data instanceof FormData)) headers['Content-Type'] = 'application/json';
 
   const authToken = token || localStorage.getItem('dayflow_token');
   if (authToken) {
@@ -20,9 +19,7 @@ export async function apiRequest<T = any>(
     headers,
   };
 
-  if (data && method !== 'GET') {
-    options.body = JSON.stringify(data);
-  }
+  if (data && method !== 'GET') options.body = data instanceof FormData ? data : JSON.stringify(data);
 
   const response = await fetch(`${API_BASE}${endpoint}`, options);
 

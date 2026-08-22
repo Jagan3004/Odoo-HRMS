@@ -86,6 +86,23 @@ router.get('/my', auth_1.authenticateToken, async (req, res) => {
         return res.status(500).json({ message: 'Internal server error' });
     }
 });
+// GET MY WEEKLY ATTENDANCE
+router.get('/weekly', auth_1.authenticateToken, async (req, res) => {
+    const endDate = typeof req.query.endDate === 'string' ? req.query.endDate : new Date().toISOString().split('T')[0];
+    const start = new Date(`${endDate}T00:00:00Z`);
+    if (Number.isNaN(start.getTime()))
+        return res.status(400).json({ message: 'Invalid end date' });
+    start.setUTCDate(start.getUTCDate() - 6);
+    const startDate = start.toISOString().split('T')[0];
+    try {
+        const result = await db_1.pool.query('SELECT * FROM attendance WHERE employee_id = $1 AND date BETWEEN $2 AND $3 ORDER BY date', [req.user?.employeeId, startDate, endDate]);
+        return res.json({ startDate, endDate, records: result.rows.map(db_1.mapAttendance) });
+    }
+    catch (err) {
+        console.error('Get weekly attendance error:', err);
+        return res.status(500).json({ message: 'Internal server error' });
+    }
+});
 // ADMIN: GET ALL ATTENDANCE WITH EMPLOYEE NAMES
 router.get('/all', auth_1.authenticateToken, (0, auth_1.requireRole)('Admin'), async (req, res) => {
     try {

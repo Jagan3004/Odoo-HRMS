@@ -47,6 +47,8 @@ router.get('/dashboard', authenticateToken, async (req: AuthRequest, res: Respon
       name: r.name,
       count: parseInt(r.count),
     }));
+    const payrollDeptResult = await pool.query('SELECT department AS name, COALESCE(SUM(salary_net), 0) AS amount FROM employees GROUP BY department ORDER BY amount DESC');
+    const payrollByDepartment = payrollDeptResult.rows.map((r) => ({ name: r.name, amount: Number(r.amount) }));
 
     // Weekly attendance trend (past 7 days)
     const attendanceTrend = [];
@@ -79,7 +81,8 @@ router.get('/dashboard', authenticateToken, async (req: AuthRequest, res: Respon
 
     // Current employee specific
     const currentEmpResult = await pool.query(
-      'SELECT * FROM employees WHERE employee_id = $1',
+      `SELECT e.*, COALESCE((SELECT json_agg(d ORDER BY d.upload_date DESC) FROM documents d WHERE d.employee_id = e.employee_id), '[]') AS documents_json
+       FROM employees e WHERE e.employee_id = $1`,
       [user.employeeId]
     );
     const currentEmp = currentEmpResult.rows.length > 0 ? mapEmployee(currentEmpResult.rows[0]) : null;
@@ -103,6 +106,7 @@ router.get('/dashboard', authenticateToken, async (req: AuthRequest, res: Respon
         pendingLeaveRequests,
         totalMonthlyPayroll,
         departmentBreakdown,
+        payrollByDepartment,
         attendanceTrend,
       },
       employeeStats: {
@@ -126,7 +130,7 @@ router.get('/notifications', authenticateToken, async (req: AuthRequest, res: Re
     if (user?.role === 'Admin') {
       result = await pool.query(
         `SELECT * FROM notifications
-         WHERE user_id = 'ALL' OR user_id = $1 OR user_id = 'HR-001'
+         WHERE user_id = 'ALL' OR user_id = $1
          ORDER BY created_at DESC LIMIT 50`,
         [user.employeeId]
       );
