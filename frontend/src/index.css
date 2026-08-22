@@ -1,78 +1,103 @@
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=DM+Sans:wght@400;500;600&display=swap');
 @import "tailwindcss";
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
-
 @theme {
-  --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --color-brand-50: #eef2ff;
-  --color-brand-100: #e0e7ff;
-  --color-brand-200: #c7d2fe;
-  --color-brand-500: #6366f1;
-  --color-brand-600: #4f46e5;
-  --color-brand-700: #4338ca;
-  --color-brand-800: #3730a3;
-  --color-brand-900: #312e81;
+  --font-sans: 'DM Sans', system-ui, sans-serif;
+  --font-display: 'Cormorant Garamond', Georgia, serif;
+
+  /* ── Aubergine & Apricot — Light ── */
+  --color-brand-50:  #fdf3ec;
+  --color-brand-100: #fde0c5;
+  --color-brand-200: #fcc89b;
+  --color-brand-300: #faaa6b;
+  --color-brand-400: #F4A261;
+  --color-brand-500: #e8855a;
+  --color-brand-600: #c96842;
+  --color-brand-700: #9a4d2e;
+  --color-brand-800: #6b331b;
+  --color-brand-900: #3c1a0a;
+
+  /* Remap indigo-* → apricot */
+  --color-indigo-50:  #fdf3ec;
+  --color-indigo-100: #fde0c5;
+  --color-indigo-200: #fcc89b;
+  --color-indigo-300: #faaa6b;
+  --color-indigo-400: #F4A261;
+  --color-indigo-500: #e8855a;
+  --color-indigo-600: #c96842;
+  --color-indigo-700: #9a4d2e;
+  --color-indigo-800: #3d1a47;
+  --color-indigo-900: #200d28;
+
+  /* Remap gray-* → warm neutral lights */
+  --color-gray-50:  #fdf8f5;
+  --color-gray-100: #f5eef8;
+  --color-gray-200: #ecddf5;
+  --color-gray-300: #dcc5ea;
+  --color-gray-400: #b894cc;
+  --color-gray-500: #9568ae;
+  --color-gray-600: #6d4490;
+  --color-gray-700: #4a2558;
+  --color-gray-800: #2f1840;
+  --color-gray-900: #1a0a1e;
 }
 
 @layer base {
   body {
-    @apply bg-gray-50 text-gray-900 font-sans antialiased min-h-screen;
+    @apply font-sans antialiased min-h-screen;
+    background-color: #fdf8f5;
+    color: #1a0a1e;
   }
 
   ::selection {
-    background: #c7d2fe;
-    color: #312e81;
+    background: #F4A261;
+    color: #fff;
   }
 }
 
-/* Custom Scrollbar — subtle light mode */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-::-webkit-scrollbar-track {
-  background: #f1f5f9;
-}
-::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 9999px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
-}
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: #f5eef8; }
+::-webkit-scrollbar-thumb { background: #dcc5ea; border-radius: 9999px; }
+::-webkit-scrollbar-thumb:hover { background: #F4A261; }
 
-/* Professional Panel Styles */
+/* ── Panel Styles ── */
 .panel {
   background: #ffffff;
-  border: 1px solid #e2e8f0;
-  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.04), 0 1px 2px -1px rgb(0 0 0 / 0.04);
+  border: 1px solid #ecddf5;
+  box-shadow: 0 1px 4px rgba(74,37,88,0.06);
 }
 
 .panel-elevated {
   background: #ffffff;
-  border: 1px solid #e2e8f0;
-  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.06), 0 2px 4px -2px rgb(0 0 0 / 0.06);
+  border: 1px solid #dcc5ea;
+  box-shadow: 0 6px 24px -4px rgba(74,37,88,0.1), 0 1px 4px rgba(74,37,88,0.05);
 }
 
 .stat-card {
   background: #ffffff;
-  border: 1px solid #e2e8f0;
-  transition: all 0.2s ease;
+  border: 1px solid #ecddf5;
+  transition: all 0.25s ease;
 }
 
 .stat-card:hover {
-  border-color: #c7d2fe;
-  box-shadow: 0 4px 12px -2px rgb(99 102 241 / 0.1);
+  border-color: #F4A261;
+  box-shadow: 0 8px 24px -4px rgba(244,162,97,0.2);
+  transform: translateY(-2px);
 }
 
-/* Subtle gradient for brand areas */
+/* ── Brand Gradient ── */
 .brand-gradient {
-  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #6366f1 100%);
+  background: linear-gradient(135deg, #3d1a47 0%, #7b3a8a 50%, #F4A261 100%);
 }
+
+/* ── Utilities ── */
+.glow-apricot   { box-shadow: 0 0 16px rgba(244,162,97,0.4); }
+.glow-aubergine { box-shadow: 0 0 16px rgba(122,85,136,0.3); }
 
 /* Print styles */
 @media print {
   .no-print { display: none !important; }
-  body { background: white; }
+  body { background: white; color: black; }
   .panel, .panel-elevated { box-shadow: none; border: 1px solid #ccc; }
 }

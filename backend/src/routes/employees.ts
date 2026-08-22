@@ -108,23 +108,48 @@ router.put('/:id', authenticateToken, async (req: AuthRequest, res: Response) =>
 
     const u = req.body;
 
-    if (isAdmin) {
-      await pool.query(
-        `UPDATE employees SET
-          name = COALESCE($1, name), designation = COALESCE($2, designation),
-          department = COALESCE($3, department), phone = COALESCE($4, phone),
-          address = COALESCE($5, address), emergency_contact = COALESCE($6, emergency_contact),
-          manager_name = COALESCE($7, manager_name)
-         WHERE employee_id = $8`,
-        [u.name, u.designation, u.department, u.phone, u.address, u.emergencyContact, u.managerName, emp.employee_id]
-      );
-    } else {
-      await pool.query(
-        `UPDATE employees SET phone = COALESCE($1, phone), address = COALESCE($2, address),
-          emergency_contact = COALESCE($3, emergency_contact)
-         WHERE employee_id = $4`,
-        [u.phone, u.address, u.emergencyContact, emp.employee_id]
-      );
+    // Update employee fields
+    await pool.query(
+      `UPDATE employees SET
+        name = COALESCE($1, name),
+        email = COALESCE($2, email),
+        designation = COALESCE($3, designation),
+        department = COALESCE($4, department),
+        phone = COALESCE($5, phone),
+        address = COALESCE($6, address),
+        emergency_contact = COALESCE($7, emergency_contact),
+        manager_name = COALESCE($8, manager_name),
+        joining_date = COALESCE($9, joining_date),
+        salary_basic = COALESCE($10, salary_basic),
+        salary_hra = COALESCE($11, salary_hra),
+        salary_special_allowance = COALESCE($12, salary_special_allowance),
+        salary_conveyance = COALESCE($13, salary_conveyance),
+        salary_pf_deduction = COALESCE($14, salary_pf_deduction),
+        salary_tax_deduction = COALESCE($15, salary_tax_deduction)
+       WHERE employee_id = $16`,
+      [
+        u.name !== undefined ? u.name : null,
+        u.email !== undefined ? u.email : null,
+        u.designation !== undefined ? u.designation : null,
+        u.department !== undefined ? u.department : null,
+        u.phone !== undefined ? u.phone : null,
+        u.address !== undefined ? u.address : null,
+        u.emergencyContact !== undefined ? u.emergencyContact : null,
+        u.managerName !== undefined ? u.managerName : null,
+        u.joiningDate !== undefined ? u.joiningDate : null,
+        u.salaryStructure?.basic !== undefined ? Number(u.salaryStructure.basic) : (u.basic !== undefined ? Number(u.basic) : null),
+        u.salaryStructure?.hra !== undefined ? Number(u.salaryStructure.hra) : (u.hra !== undefined ? Number(u.hra) : null),
+        u.salaryStructure?.specialAllowance !== undefined ? Number(u.salaryStructure.specialAllowance) : (u.specialAllowance !== undefined ? Number(u.specialAllowance) : null),
+        u.salaryStructure?.conveyance !== undefined ? Number(u.salaryStructure.conveyance) : (u.conveyance !== undefined ? Number(u.conveyance) : null),
+        u.salaryStructure?.pfDeduction !== undefined ? Number(u.salaryStructure.pfDeduction) : (u.pfDeduction !== undefined ? Number(u.pfDeduction) : null),
+        u.salaryStructure?.taxDeduction !== undefined ? Number(u.salaryStructure.taxDeduction) : (u.taxDeduction !== undefined ? Number(u.taxDeduction) : null),
+        emp.employee_id
+      ]
+    );
+
+    // Sync email and name with users table if changed
+    if (u.email) {
+      await pool.query('UPDATE users SET email = $1 WHERE employee_id = $2', [u.email, emp.employee_id]);
     }
 
     const updated = await pool.query('SELECT * FROM employees WHERE employee_id = $1', [emp.employee_id]);

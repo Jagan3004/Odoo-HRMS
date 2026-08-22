@@ -5,7 +5,7 @@ import { AdminStats, EmployeeStats } from '../types';
 import { Users, Clock, CalendarDays, DollarSign, TrendingUp, AlertCircle, CheckCircle2, Play, Square, ArrowRight } from 'lucide-react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, PieChart, Pie, Cell } from 'recharts';
 
-const COLORS = ['#4f46e5', '#7c3aed', '#ec4899', '#3b82f6', '#10b981'];
+const COLORS = ['#F4A261', '#7b3a8a', '#e8855a', '#4a2558', '#c4a8d0'];
 
 interface DashboardProps { setActiveTab: (tab: string) => void; }
 
@@ -40,7 +40,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveTab }) => {
     finally { setClockActionLoading(false); }
   };
 
-  if (loading) return <div className="flex items-center justify-center min-h-[400px]"><div className="animate-spin rounded-full h-8 w-8 border-2 border-indigo-200 border-t-indigo-600" /></div>;
+  if (loading) return <div className="flex items-center justify-center min-h-[400px]"><div className="animate-spin rounded-full h-8 w-8 border-2" style={{ borderColor: '#ecddf5', borderTopColor: '#F4A261' }} /></div>;
 
   const todayAtt = employeeStats?.todayAttendance;
   const isCheckedIn = !!todayAtt?.checkIn && !todayAtt?.checkOut;
@@ -51,13 +51,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveTab }) => {
       {/* Welcome Banner */}
       <div className="panel-elevated rounded-xl p-6 sm:p-8 flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
-          <div className="inline-flex items-center space-x-2 px-2.5 py-1 rounded-md bg-indigo-50 text-indigo-700 text-xs font-semibold mb-2 border border-indigo-100">
+          <div className="inline-flex items-center space-x-2 px-2.5 py-1 rounded-full text-xs font-medium mb-3"
+            style={{ background: '#fde0c5', border: '1px solid rgba(244,162,97,0.5)', color: '#c96842' }}>
             <span>{user?.role === 'Admin' ? 'HR Management Hub' : 'Employee Portal'}</span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
-            Welcome back, <span className="text-indigo-600">{employee?.name}</span>
+          <h1 className="text-2xl sm:text-3xl font-bold" style={{ color: '#2f1840', fontFamily: 'Cormorant Garamond, serif', fontSize: '34px', letterSpacing: '-0.5px' }}>
+            Welcome back, <span style={{ color: '#e8855a' }}>{employee?.name}</span>
           </h1>
-          <p className="text-gray-500 text-sm mt-1 max-w-xl">
+          <p className="text-sm mt-1 max-w-xl" style={{ color: '#7a5588' }}>
             {user?.role === 'Admin'
               ? 'View workforce metrics, pending leave approvals, attendance trends, and payroll summary.'
               : 'Track your workday, monitor leave balances, and view payslips.'}
@@ -67,17 +68,17 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveTab }) => {
         {/* Clock Widget */}
         <div className="panel p-4 rounded-xl min-w-[260px]">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-semibold text-gray-700 flex items-center gap-1.5">
-              <Clock className="w-3.5 h-3.5 text-indigo-500" /> Today's Status
+          <span className="text-xs font-semibold flex items-center gap-1.5" style={{ color: '#4a2558' }}>
+              <Clock className="w-3.5 h-3.5" style={{ color: '#F4A261' }} /> Today's Status
             </span>
-            <span className="text-[10px] text-gray-400 font-medium">
+            <span className="text-[10px] font-medium" style={{ color: '#9568ae' }}>
               {new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
             </span>
           </div>
           <div className="flex items-center justify-between my-2">
             <div>
-              <p className="text-[11px] text-gray-400">Check-in</p>
-              <p className="text-sm font-semibold text-gray-800 font-mono">{todayAtt?.checkIn || '-- : --'}</p>
+              <p className="text-[11px]" style={{ color: '#9568ae' }}>Check-in</p>
+              <p className="text-sm font-bold font-mono" style={{ color: '#2f1840' }}>{todayAtt?.checkIn || '-- : --'}</p>
             </div>
             <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${isCheckedOut ? 'bg-gray-100 text-gray-500' : isCheckedIn ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-amber-50 text-amber-700 border border-amber-200'}`}>
               {isCheckedOut ? 'Completed' : isCheckedIn ? 'Working' : 'Not Clocked In'}
@@ -100,7 +101,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveTab }) => {
               </div>
             )}
           </div>
-          {clockMessage && <p className="text-[10px] text-center mt-2 text-indigo-600 font-medium">{clockMessage}</p>}
+          {clockMessage && <p className="text-[10px] text-center mt-2 font-medium" style={{ color: '#F4A261' }}>{clockMessage}</p>}
         </div>
       </div>
 
@@ -175,13 +176,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveTab }) => {
             <div className="h-56">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={adminStats.attendanceTrend}>
-                  <XAxis dataKey="date" stroke="#9ca3af" fontSize={12} tickLine={false} axisLine={false} />
-                  <YAxis stroke="#9ca3af" fontSize={12} tickLine={false} axisLine={false} />
-                  <Tooltip contentStyle={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '8px', fontSize: '12px', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.05)' }} />
-                  <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '8px' }} />
-                  <Bar dataKey="Present" fill="#4f46e5" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="Leave" fill="#ec4899" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="Absent" fill="#e5e7eb" radius={[4, 4, 0, 0]} />
+                  <XAxis dataKey="date" stroke="#dcc5ea" fontSize={11} tickLine={false} axisLine={false} />
+                  <YAxis stroke="#dcc5ea" fontSize={11} tickLine={false} axisLine={false} />
+                  <Tooltip contentStyle={{ background: '#fff', border: '1px solid #dcc5ea', borderRadius: '10px', fontSize: '12px', color: '#2f1840', boxShadow: '0 8px 24px rgba(74,37,88,0.12)' }} />
+                  <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '8px', color: '#9568ae' }} />
+                  <Bar dataKey="Present" fill="#F4A261" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="Leave" fill="#7b3a8a" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="Absent" fill="#ecddf5" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -196,7 +197,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveTab }) => {
                     <Pie data={adminStats.departmentBreakdown} dataKey="count" nameKey="name" cx="50%" cy="50%" outerRadius={60} innerRadius={38} paddingAngle={4}>
                       {adminStats.departmentBreakdown.map((_entry, index) => (<Cell key={index} fill={COLORS[index % COLORS.length]} />))}
                     </Pie>
-                    <Tooltip contentStyle={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '8px', fontSize: '12px' }} />
+                    <Tooltip contentStyle={{ background: '#fff', border: '1px solid #dcc5ea', borderRadius: '10px', fontSize: '12px', color: '#2f1840', boxShadow: '0 8px 24px rgba(74,37,88,0.12)' }} />
                   </PieChart>
                 </ResponsiveContainer>
               </div>
